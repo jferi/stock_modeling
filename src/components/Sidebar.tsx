@@ -13,7 +13,6 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ items }) => {
   const { theme } = useTheme();
 
-  // Determine class names based on the current theme
   const backgroundColor = theme === "dark" ? "bg-gray-800" : "bg-gray-200";
   const textColor = theme === "dark" ? "text-white" : "text-gray-800";
   const hoverBackgroundColor =

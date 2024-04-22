@@ -27,7 +27,7 @@
     "react-stockcharts": "^0.5.0",
     "recharts": "^2.12.5",
     "web-vitals": "^3.5.2",
-    "yahoo-finance2": "^2.11.1"
+    "yahoo-finance2": "^2.11.2"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1",
