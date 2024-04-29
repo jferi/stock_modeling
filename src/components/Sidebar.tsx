@@ -62,7 +62,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onRemove }) => {
 
   return (
     <div className={` ${backgroundColorClass} ${textColorClass}`}>
-      <SearchBar addItem={handleAddItem} />
+      <h1 className="text-2xl font-bold p-4 text-center">Stocks</h1>
+      <div className="w-3/4 mx-auto pb-4">
+        <SearchBar addItem={handleAddItem} />
+      </div>
 
       <ul className={` ${backgroundColorClass} ${textColorClass}`}>
         {sidebarItems.map((item) => (

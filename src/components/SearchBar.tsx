@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { SidebarItem } from "../types";
 import { invoke } from "@tauri-apps/api/tauri";
+import useOutsideClick from "./outsideClick";
 
 interface SearchBarProps {
   addItem: (label: SidebarItem) => void;
@@ -12,6 +13,11 @@ const SearchBar: React.FC<SearchBarProps> = ({ addItem }) => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const dropdownRef = React.useRef(null);
+
+  useOutsideClick(dropdownRef, () => {
+    setShowDropdown(false);
+  });
 
   useEffect(() => {
     const searchStocks = async () => {
@@ -50,13 +56,11 @@ const SearchBar: React.FC<SearchBarProps> = ({ addItem }) => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <input
         type="text"
         className={`input border border-gray-300 rounded-md p-2 w-full ${
-          theme === "dark"
-            ? "bg-gray-700 text-white"
-            : "bg-gray-200 text-gray-800"
+          theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-  "
         }`}
         placeholder="Search..."
         value={searchTerm}
