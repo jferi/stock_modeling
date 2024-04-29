@@ -4,11 +4,17 @@ import { useTheme } from "../contexts/ThemeContext";
 const Menu: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
 
-  // Theme-dependent button styling
   const buttonBg = theme === "dark" ? "bg-gray-700" : "bg-gray-300";
   const buttonHoverBg =
     theme === "dark" ? "hover:bg-gray-600" : "hover:bg-gray-400";
   const textColor = theme === "dark" ? "text-white" : "text-gray-800";
+
+  const timestamps = ["1M", "5M", "15M", "1H", "1D"];
+
+  const timeStampChange = (time: string) => {
+    console.log(time);
+  }
+  
 
   return (
     <div
@@ -22,17 +28,16 @@ const Menu: React.FC = () => {
       >
         {theme === "light" ? "Switch to Dark" : "Switch to Light"}
       </button>
-      <div className="mr-4">
-        <button
-          className={`p-2 ${textColor} ${buttonBg} ${buttonHoverBg} rounded transition duration-150 ease-in-out`}
-        >
-          Timestamp 1
-        </button>
-        <button
-          className={`p-2 ${textColor} ${buttonBg} ${buttonHoverBg} rounded transition duration-150 ease-in-out`}
-        >
-          Timestamp 2
-        </button>
+      <div className="mr-4 flex space-x-2">
+        {timestamps.map((timestamp) => (
+          <button
+            key={timestamp}
+            className={`p-2 ${textColor} ${buttonBg} ${buttonHoverBg} rounded transition duration-150 ease-in-out`}
+            onClick={() => timeStampChange(timestamp)}
+          >
+            {timestamp}
+          </button>
+        ))}
       </div>
     </div>
   );

@@ -1,82 +1,54 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod test;
 
 use tauri::Manager;
+
 use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc, NaiveDate};
+use std::sync::{Arc, Mutex};
+use lazy_static::lazy_static;
 
-#[derive(Serialize, Deserialize, Debug)]
-struct StockQuote {
-    high: f64,
-    volume: u64,
-    open: f64,
-    low: f64,
-    close: f64,
-    adjclose: f64,
-    date: DateTime<Utc>,
+lazy_static! {
+    static ref ITEMS: Arc<Mutex<Vec<String>>> = {
+        let items = Arc::new(Mutex::new(Vec::new()));
+        items.lock().unwrap().push("AAPL".to_string());
+        items
+    };
 }
-
-#[derive(Serialize, Deserialize, Debug)]
-struct StockData {
-    meta: MetaData,
-    quotes: Vec<StockQuote>,
-    events: EventsData,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct MetaData {
-    
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct EventsData {
-    
-}
-
-
-#[derive(Serialize, Debug)]
-struct CustomQuote {
-    high: f64,
-    volume: u64,
-    open: f64,
-    low: f64,
-    close: f64,
-    adjclose: f64,
-    time: NaiveDate,
-}
-
 
 #[tauri::command]
-async fn fetch_stock_chart(symbol: String) -> Result<Vec<CustomQuote>, String> {
-    let client = reqwest::Client::new();
-    let url = format!("http://localhost:3000/api/stock/chart/{}", symbol);
-
-    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
-    if response.status().is_success() {
-        let stock_data: StockData = response.json().await.map_err(|e| e.to_string())?;
-
-        let custom_quotes: Vec<CustomQuote> = stock_data.quotes.iter().map(|quote| {
-            CustomQuote {
-                high: quote.high,
-                volume: quote.volume,
-                open: quote.open,
-                low: quote.low,
-                close: quote.close,
-                adjclose: quote.adjclose,
-                time: quote.date.date_naive(),
-            }
-        }).collect();
-
-        Ok(custom_quotes)
-    } else {
-        Err(format!("Failed to fetch stock data: HTTP {}", response.status()))
+async fn add_item(item: String) -> Result<(), String> {
+    print!("{}", item);
+    let mut items = ITEMS.lock().unwrap();
+    if !items.contains(&item) {
+        items.push(item);
     }
+    Ok(())
 }
 
 #[tauri::command]
 fn get_labels() -> Vec<String> {
-  vec!["AAPL".into(), "GOOGL".into(), "MSFT".into(), "AMZN".into(), "TSLA".into()]
+  ITEMS.lock().unwrap().clone()
+}
+
+
+#[tauri::command]
+async fn search_indices(query: String) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let url = format!("http://localhost:3000/search-stocks/{}", query);
+
+    let response = client.get(&url).send().await;
+    if let Err(e) = response {
+        return Err(format!("Failed to fetch stock data: {}", e));
+    }
+    let response = response.unwrap(); 
+    if !response.status().is_success() {
+        return Err(format!("Failed to fetch stock data: HTTP {}", response.status()));
+    }
+
+    // Extract the data from the response and return it
+    let data: Vec<String> = response.json().await.map_err(|e| format!("Failed to parse response: {}", e))?;
+    Ok(data)
 }
 
 
@@ -100,7 +72,7 @@ fn main() {
             Ok(())}
         )
         .menu(menu)
-        .invoke_handler(tauri::generate_handler![get_labels, fetch_stock_chart])
+        .invoke_handler(tauri::generate_handler![get_labels, test::fetch_stock_from_api::fetch_stock_chart, search_indices, add_item])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

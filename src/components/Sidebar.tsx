@@ -1,36 +1,83 @@
-import React from "react";
+import React, { useContext, useEffect, useState } from "react";
+import { SidebarItem, StockChartDataArray } from "../types";
+import SearchBar from "./SearchBar";
 import { useTheme } from "../contexts/ThemeContext";
-
-interface SidebarItem {
-  label: string;
-  onClick: () => void;
-}
+import { invoke } from "@tauri-apps/api/tauri";
+import ChartDataContext from "../contexts/ChartDataContext";
 
 interface SidebarProps {
   items: SidebarItem[];
+  chartData: any[];
+  onRemove: (label: string) => void;
+  addItem: (item: SidebarItem) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ items }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onRemove }) => {
   const { theme } = useTheme();
+  const [sidebarItems, setSidebarItems] = useState<SidebarItem[]>([]);
+  const { chartData, setChartData = () => {} } =
+    useContext(ChartDataContext) || {};
 
-  const backgroundColor = theme === "dark" ? "bg-gray-800" : "bg-gray-200";
-  const textColor = theme === "dark" ? "text-white" : "text-gray-800";
-  const hoverBackgroundColor =
+  useEffect(() => {
+    console.log(chartData);
+  }, [chartData]);
+
+  const handleAddItem = (item: SidebarItem): void => {
+    setSidebarItems((prevItems) => {
+      const exists = prevItems.some(
+        (existingItem) => existingItem.label === item.label
+      );
+      if (!exists) {
+        return [
+          ...prevItems,
+          {
+            ...item,
+            onClick: () => {
+              invoke("fetch_stock_chart", { symbol: item.label }).then(
+                (data: unknown) => {
+                  const stockChartData = data as StockChartDataArray;
+                  setChartData(stockChartData as StockChartDataArray);
+                  console.log(chartData);
+                }
+              );
+            }
+          }
+        ];
+      }
+      return prevItems;
+    });
+  };
+
+  const handleRemoveItem = (label: string) => {
+    setSidebarItems((prevItems) =>
+      prevItems.filter((item) => item.label !== label)
+    );
+    onRemove(label);
+  };
+
+  const backgroundColorClass = theme === "dark" ? "bg-gray-800" : "bg-gray-200";
+  const textColorClass = theme === "dark" ? "text-white" : "text-gray-800";
+  const hoverBackgroundColorClass =
     theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-300";
 
   return (
-    <div
-      className={`w-1/5 min-w-[15%] ${backgroundColor} ${textColor} transition duration-200 ease-in-out fixed inset-y-0 left-0`}
-    >
-      <ul className="space-y-2 p-2">
-        {items.map((item, index) => (
-          <li key={index} className="block">
-            <button
-              className={`text-left w-full px-3 py-2 rounded ${hoverBackgroundColor} focus:outline-none focus:${hoverBackgroundColor}`}
-              onClick={item.onClick}
+    <div className={` ${backgroundColorClass} ${textColorClass}`}>
+      <SearchBar addItem={handleAddItem} />
+
+      <ul className={` ${backgroundColorClass} ${textColorClass}`}>
+        {sidebarItems.map((item) => (
+          <li
+            key={item.label}
+            className={`flex justify-between px-4 py-2 cursor-pointer ${hoverBackgroundColorClass} ${backgroundColorClass} ${textColorClass}`}
+            onClick={item.onClick}
+          >
+            {item.label}
+            <span
+              onClick={() => handleRemoveItem(item.label)}
+              className="text-red-500 hover:text-red-600 cursor-pointer"
             >
-              {item.label}
-            </button>
+              ✕
+            </span>
           </li>
         ))}
       </ul>
