@@ -14,18 +14,22 @@ pub struct StockQuote {
     date: DateTime<Utc>,
 }
 
+
 #[derive(Serialize, Deserialize, Debug)]
-pub struct StockData {
-    meta: MetaData,
-    quotes: Vec<StockQuote>,
-    events: EventsData,
+pub struct EventsData;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MetaData; 
+
+#[derive(Serialize, Debug)]
+pub struct CustomQuoteDay {
+    high: f64,
+    volume: u64,
+    open: f64,
+    low: f64,
+    close: f64,
+    time: NaiveDate,
 }
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct EventsData {}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct MetaData {} 
 
 #[derive(Serialize, Debug)]
 pub struct CustomQuote {
@@ -34,6 +38,5 @@ pub struct CustomQuote {
     open: f64,
     low: f64,
     close: f64,
-    adjclose: f64,
-    time: NaiveDate,
+    time: DateTime<Utc>,
 }

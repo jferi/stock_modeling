@@ -1,8 +1,12 @@
 import React from "react";
 import { useTheme } from "../contexts/ThemeContext";
+import { useChartData } from "../store/chartdata";
+import { useTimeStamp } from "../store/timestamp";
 
 const Menu: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
+  const setTimeStamp = useTimeStamp((state) => state.setTimeStamp);
+  const timestamp = useTimeStamp((state) => state.timestamp);
 
   const buttonBg = theme === "dark" ? "bg-gray-700" : "bg-gray-300";
   const buttonHoverBg =
@@ -10,11 +14,7 @@ const Menu: React.FC = () => {
   const textColor = theme === "dark" ? "text-white" : "text-gray-800";
 
   const timestamps = ["1M", "5M", "15M", "1H", "1D"];
-
-  const timeStampChange = (time: string) => {
-    console.log(time);
-  }
-  
+  const chartData = useChartData((state) => state.data);
 
   return (
     <div
@@ -33,7 +33,7 @@ const Menu: React.FC = () => {
           <button
             key={timestamp}
             className={`p-2 ${textColor} ${buttonBg} ${buttonHoverBg} rounded transition duration-150 ease-in-out`}
-            onClick={() => timeStampChange(timestamp)}
+            onClick={() => setTimeStamp(timestamp)}
           >
             {timestamp}
           </button>

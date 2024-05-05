@@ -1,14 +1,15 @@
-import React, { useContext, useEffect, useRef } from "react";
 import {
-  createChart,
+  ChartOptions,
+  DeepPartial,
   IChartApi,
   ISeriesApi,
-  ChartOptions,
   TimeScaleOptions,
-  DeepPartial
+  createChart
 } from "lightweight-charts";
+import React, { useEffect, useRef } from "react";
 import { useTheme } from "../contexts/ThemeContext";
-import ChartDataContext from "../contexts/ChartDataContext";
+import { useChartData } from "../store/chartdata";
+import { useTimeStamp } from "../store/timestamp";
 
 interface ChartComponentProps {
   data: any[];
@@ -19,7 +20,8 @@ const ChartComponent: React.FC<ChartComponentProps> = ({ data }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const { chartData } = useContext(ChartDataContext) || {};
+  const chartData = useChartData((state) => state.data);
+  const timeframe = useTimeStamp((state) => state.timestamp);
 
   useEffect(() => {
     if (chartContainerRef.current && !chartRef.current) {
@@ -43,14 +45,27 @@ const ChartComponent: React.FC<ChartComponentProps> = ({ data }) => {
       const chart = createChart(chartContainerRef.current, chartOptions);
       const series = chart.addCandlestickSeries();
       if (chartData) {
-        const convertedData = chartData.map((data) => ({
-          time: data.time, // Convert the time to a UTCTimestamp
-          open: data.open,
-          high: data.high,
-          low: data.low,
-          close: data.close
-        }));
-        series.setData(convertedData);
+        if (timeframe == "1D") {
+          const convertedData = chartData.map((data) => ({
+            time: data.Day.time,
+            open: data.Day.open,
+            high: data.Day.high,
+            low: data.Day.low,
+            close: data.Day.close
+          }));
+          series.setData(convertedData);
+          console.log(convertedData);
+        } else {
+          const convertedData = chartData.map((data) => ({
+            time: data.Intraday.time,
+            open: data.Intraday.open,
+            high: data.Intraday.high,
+            low: data.Intraday.low,
+            close: data.Intraday.close
+          }));
+          series.setData(convertedData);
+          console.log(convertedData);
+        }
       }
       chartRef.current = chart;
       seriesRef.current = series;
@@ -97,8 +112,27 @@ const ChartComponent: React.FC<ChartComponentProps> = ({ data }) => {
   }, []);
 
   useEffect(() => {
+    console.log(timeframe);
     if (seriesRef.current) {
-      seriesRef.current.setData(data);
+      if (timeframe == "1D") {
+        const convertedData = data.map((data) => ({
+          time: data.Day.time,
+          open: data.Day.open,
+          high: data.Day.high,
+          low: data.Day.low,
+          close: data.Day.close
+        }));
+        seriesRef.current.setData(convertedData);
+      } else {
+        const convertedData = data.map((data) => ({
+          time: data.IntraDay.time,
+          open: data.IntraDay.open,
+          high: data.IntraDay.high,
+          low: data.IntraDay.low,
+          close: data.IntraDay.close
+        }));
+        seriesRef.current.setData(convertedData);
+      }
     }
   }, [data]);
 

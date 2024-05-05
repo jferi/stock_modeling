@@ -1,59 +1,20 @@
-import React, { useContext, useEffect, useState } from "react";
-import { SidebarItem, StockChartDataArray } from "../types";
-import SearchBar from "./SearchBar";
-import { useTheme } from "../contexts/ThemeContext";
 import { invoke } from "@tauri-apps/api/tauri";
-import ChartDataContext from "../contexts/ChartDataContext";
+import React from "react";
+import { useTheme } from "../contexts/ThemeContext";
+import { useChartData } from "../store/chartdata";
+import { useSidebarLabels } from "../store/sidebar";
+import { useTimeStamp } from "../store/timestamp";
+import { StockChartData } from "../types";
+import SearchBar from "./SearchBar";
 
-interface SidebarProps {
-  items: SidebarItem[];
-  chartData: any[];
-  onRemove: (label: string) => void;
-  addItem: (item: SidebarItem) => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ onRemove }) => {
+const Sidebar: React.FC = () => {
   const { theme } = useTheme();
-  const [sidebarItems, setSidebarItems] = useState<SidebarItem[]>([]);
-  const { chartData, setChartData = () => {} } =
-    useContext(ChartDataContext) || {};
-
-  useEffect(() => {
-    console.log(chartData);
-  }, [chartData]);
-
-  const handleAddItem = (item: SidebarItem): void => {
-    setSidebarItems((prevItems) => {
-      const exists = prevItems.some(
-        (existingItem) => existingItem.label === item.label
-      );
-      if (!exists) {
-        return [
-          ...prevItems,
-          {
-            ...item,
-            onClick: () => {
-              invoke("fetch_stock_chart", { symbol: item.label }).then(
-                (data: unknown) => {
-                  const stockChartData = data as StockChartDataArray;
-                  setChartData(stockChartData as StockChartDataArray);
-                  console.log(chartData);
-                }
-              );
-            }
-          }
-        ];
-      }
-      return prevItems;
-    });
-  };
-
-  const handleRemoveItem = (label: string) => {
-    setSidebarItems((prevItems) =>
-      prevItems.filter((item) => item.label !== label)
-    );
-    onRemove(label);
-  };
+  const setChartData = useChartData((state) => state.setData);
+  const labels = useSidebarLabels((state) => state.labels);
+  const removeLabel = useSidebarLabels((state) => state.removeLabel);
+  const timeframe = useTimeStamp((state) => state.timestamp);
+  const period1 = useTimeStamp((state) => state.period1);
+  const period2 = useTimeStamp((state) => state.period2);
 
   const backgroundColorClass = theme === "dark" ? "bg-gray-800" : "bg-gray-200";
   const textColorClass = theme === "dark" ? "text-white" : "text-gray-800";
@@ -64,19 +25,33 @@ const Sidebar: React.FC<SidebarProps> = ({ onRemove }) => {
     <div className={` ${backgroundColorClass} ${textColorClass}`}>
       <h1 className="text-2xl font-bold p-4 text-center">Stocks</h1>
       <div className="w-3/4 mx-auto pb-4">
-        <SearchBar addItem={handleAddItem} />
+        <SearchBar />
       </div>
 
       <ul className={` ${backgroundColorClass} ${textColorClass}`}>
-        {sidebarItems.map((item) => (
+        {labels.map((label) => (
           <li
-            key={item.label}
+            key={label}
             className={`flex justify-between px-4 py-2 cursor-pointer ${hoverBackgroundColorClass} ${backgroundColorClass} ${textColorClass}`}
-            onClick={item.onClick}
+            onClick={async () => {
+              console.log(label, timeframe, period1, period2);
+              const data = await invoke("fetch_stock_chart", {
+                symbol: label,
+                timeframe: timeframe,
+                period1: period1,
+                period2: period2
+              });
+              console.log(data);
+
+              setChartData(data as StockChartData[]);
+            }}
           >
-            {item.label}
+            {label}
             <span
-              onClick={() => handleRemoveItem(item.label)}
+              onClick={(e) => {
+                e.preventDefault();
+                removeLabel(label);
+              }}
               className="text-red-500 hover:text-red-600 cursor-pointer"
             >
               ✕

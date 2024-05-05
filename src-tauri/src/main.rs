@@ -18,7 +18,6 @@ lazy_static! {
 
 #[tauri::command]
 async fn add_item(item: String) -> Result<(), String> {
-    print!("{}", item);
     let mut items = ITEMS.lock().unwrap();
     if !items.contains(&item) {
         items.push(item);

@@ -1,15 +1,24 @@
+const { time } = require("console");
 const express = require("express");
 const yahooFinance = require("yahoo-finance2").default;
 
 const app = express();
 const PORT = 3000;
 
-app.get("/api/stock/chart/:symbol", async (req, res) => {
+app.get("/stock/chart/:symbol", async (req, res) => {
   try {
-    const queryOptions = { period1: "2014-01-01" };
-    const data = await yahooFinance.chart(req.params.symbol, queryOptions);
+    const { timeframe, period1, period2 } = req.query;
+    console.log(req.query, req.params.symbol);
+    const queryOptions = {
+      interval: timeframe.toLowerCase(),
+      period2: period2,
+      period1: period1
+    };
+    const data = (await yahooFinance.chart(req.params.symbol, queryOptions))
+      .quotes;
     res.json(data);
   } catch (error) {
+    console.log("Error fetching data:", error);
     res.status(500).json({ error: error.toString() });
   }
 });
@@ -22,7 +31,6 @@ app.get("/search-stocks/:symbol", async (req, res) => {
       lang: "en-US",
       region: "US"
     });
-
     const symbols = results.quotes
       .map((quote) => quote.symbol)
       .filter((symbol) => symbol !== null)

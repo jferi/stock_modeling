@@ -1,47 +1,44 @@
-import React, { useState, useEffect } from "react";
-import { useTheme } from "../contexts/ThemeContext";
-import { SidebarItem } from "../types";
 import { invoke } from "@tauri-apps/api/tauri";
+import React, { useEffect, useState } from "react";
+import { useToggle } from "react-use";
+import { useTheme } from "../contexts/ThemeContext";
+import { useSidebarLabels } from "../store/sidebar";
 import useOutsideClick from "./outsideClick";
 
-interface SearchBarProps {
-  addItem: (label: SidebarItem) => void;
-}
-
-const SearchBar: React.FC<SearchBarProps> = ({ addItem }) => {
+const SearchBar: React.FC = () => {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [searchResults, setSearchResults] = useState<string[]>([]);
-  const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [toggle, setToggle] = useToggle(false);
   const dropdownRef = React.useRef(null);
+  const setLabel = useSidebarLabels((state) => state.setLabel);
 
   useOutsideClick(dropdownRef, () => {
-    setShowDropdown(false);
+    setToggle(false);
   });
 
   useEffect(() => {
     const searchStocks = async () => {
       if (searchTerm.length > 1) {
         try {
-          const results: string[] = await invoke("search_indices", {
+          const results = await invoke<string[]>("search_indices", {
             query: searchTerm
           });
           setSearchResults(results);
-          setShowDropdown(true);
+          setToggle();
         } catch (error) {
           setSearchResults([]);
-          setShowDropdown(false);
+          setToggle();
         }
       } else {
         setSearchResults([]);
-        setShowDropdown(false);
+        setToggle();
       }
     };
 
-    console.log("Searching for:", searchTerm);
     const timeoutId = setTimeout(() => {
       searchStocks();
-    }, 300);
+    }, 0);
 
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
@@ -49,7 +46,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ addItem }) => {
   const handleItemClick = async (label: string) => {
     try {
       await invoke("add_item", { item: label });
-      addItem({ label } as SidebarItem);
+      setLabel(label);
     } catch (error) {
       console.error("Error invoking Tauri command:", error);
     }
@@ -64,11 +61,9 @@ const SearchBar: React.FC<SearchBarProps> = ({ addItem }) => {
         }`}
         placeholder="Search..."
         value={searchTerm}
-        onChange={(e) => {
-          setSearchTerm(e.target.value);
-        }}
+        onChange={(e) => setSearchTerm(e.target.value)}
       />
-      {showDropdown && searchResults.length > 0 && (
+      {toggle && searchResults.length > 0 && (
         <ul className="absolute z-10 w-full mt-1 rounded-md overflow-hidden shadow-lg bg-gray-200">
           {searchResults.map((item, index) => (
             <li
