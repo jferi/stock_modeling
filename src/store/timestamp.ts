@@ -1,5 +1,8 @@
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+dayjs.extend(utc);
 
 type TimeState = {
   timestamp: string;
@@ -9,43 +12,27 @@ type TimeState = {
 };
 
 const useTimeStamp = create<TimeState>()(
-  immer((set, _get) => ({
+  immer((set) => ({
     timestamp: "1D",
     period1: "2014-01-01",
-    period2: new Date().toISOString().split("T")[0],
+    period2: dayjs().utc().format("YYYY-MM-DD"),
     setTimeStamp: (timestamp) => {
       set((state) => {
+        if (timestamp == "1D") {
+          state.period1 = "2014-01-01";
+          state.period2 = dayjs().utc().format("YYYY-MM-DD");
+        } else {
+          state.period2 = dayjs().utc().format();
+          if (timestamp == "1M") {
+            state.period1 = dayjs().utc().subtract(7, "day").format();
+          } else if (timestamp == "5M" || timestamp == "15M") {
+            state.period1 = dayjs().utc().subtract(60, "day").format();
+          } else if (timestamp == "1H") {
+            state.period1 = dayjs().utc().subtract(720, "day").format();
+          }
+        }
         state.timestamp = timestamp;
       });
-      if (timestamp === "1D") {
-        set((state) => {
-          (state.period1 = "2014-01-01"),
-            (state.period2 = new Date().toISOString().split("T")[0]);
-        });
-      } else {
-        set((state) => {
-          state.period2 = new Date().toISOString();
-        });
-        if (timestamp === "1M") {
-          set((state) => {
-            state.period1 = new Date(
-              new Date().setDate(new Date().getDate() - 7)
-            ).toISOString();
-          });
-        } else if (timestamp === "5M" || timestamp === "15M") {
-          set((state) => {
-            state.period1 = new Date(
-              new Date().setDate(new Date().getDate() - 60)
-            ).toISOString();
-          });
-        } else if (timestamp === "1H") {
-          set((state) => {
-            state.period1 = new Date(
-              new Date().setDate(new Date().getDate() - 720)
-            ).toISOString();
-          });
-        }
-      }
     }
   }))
 );

@@ -1,12 +1,16 @@
 import React from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useChartData } from "../store/chartdata";
+import { useSidebarLabels } from "../store/sidebar";
 import { useTimeStamp } from "../store/timestamp";
 
 const Menu: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const setTimeStamp = useTimeStamp((state) => state.setTimeStamp);
-  const timestamp = useTimeStamp((state) => state.timestamp);
+  const fetchStockData = useChartData((state) => state.fetchData);
+  const period1 = useTimeStamp((state) => state.period1);
+  const period2 = useTimeStamp((state) => state.period2);
+  const label = useSidebarLabels((state) => state.label);
 
   const buttonBg = theme === "dark" ? "bg-gray-700" : "bg-gray-300";
   const buttonHoverBg =
@@ -14,7 +18,6 @@ const Menu: React.FC = () => {
   const textColor = theme === "dark" ? "text-white" : "text-gray-800";
 
   const timestamps = ["1M", "5M", "15M", "1H", "1D"];
-  const chartData = useChartData((state) => state.data);
 
   return (
     <div
@@ -33,7 +36,10 @@ const Menu: React.FC = () => {
           <button
             key={timestamp}
             className={`p-2 ${textColor} ${buttonBg} ${buttonHoverBg} rounded transition duration-150 ease-in-out`}
-            onClick={() => setTimeStamp(timestamp)}
+            onClick={async () => {
+              setTimeStamp(timestamp);
+              fetchStockData(label, timestamp, period1, period2);
+            }}
           >
             {timestamp}
           </button>

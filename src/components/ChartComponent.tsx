@@ -4,6 +4,7 @@ import {
   IChartApi,
   ISeriesApi,
   TimeScaleOptions,
+  UTCTimestamp,
   createChart
 } from "lightweight-charts";
 import React, { useEffect, useRef } from "react";
@@ -21,7 +22,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({ data }) => {
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const chartData = useChartData((state) => state.data);
-  const timeframe = useTimeStamp((state) => state.timestamp);
+  const timestamp = useTimeStamp((state) => state.timestamp);
 
   useEffect(() => {
     if (chartContainerRef.current && !chartRef.current) {
@@ -35,7 +36,15 @@ const ChartComponent: React.FC<ChartComponentProps> = ({ data }) => {
           textColor: theme === "dark" ? "#f8f9fa" : "#343a40"
         },
         timeScale: {
-          borderColor: theme === "dark" ? "#495057" : "#dee2e6"
+          borderColor: theme === "dark" ? "#495057" : "#dee2e6",
+          rightOffset: 12,
+          barSpacing: 15,
+          fixLeftEdge: true,
+          lockVisibleTimeRangeOnResize: true,
+          borderVisible: false,
+          visible: true,
+          timeVisible: true,
+          secondsVisible: false
         },
         grid: {
           vertLines: { color: theme === "dark" ? "#343434" : "#e9e9ea" },
@@ -45,28 +54,16 @@ const ChartComponent: React.FC<ChartComponentProps> = ({ data }) => {
       const chart = createChart(chartContainerRef.current, chartOptions);
       const series = chart.addCandlestickSeries();
       if (chartData) {
-        if (timeframe == "1D") {
-          const convertedData = chartData.map((data) => ({
-            time: data.Day.time,
-            open: data.Day.open,
-            high: data.Day.high,
-            low: data.Day.low,
-            close: data.Day.close
-          }));
-          series.setData(convertedData);
-          console.log(convertedData);
-        } else {
-          const convertedData = chartData.map((data) => ({
-            time: data.Intraday.time,
-            open: data.Intraday.open,
-            high: data.Intraday.high,
-            low: data.Intraday.low,
-            close: data.Intraday.close
-          }));
-          series.setData(convertedData);
-          console.log(convertedData);
-        }
+        const convertedData = chartData.map((data) => ({
+          time: new Date(data.time).getTime() as UTCTimestamp,
+          open: data.open,
+          high: data.high,
+          low: data.low,
+          close: data.close
+        }));
+        series.setData(convertedData);
       }
+
       chartRef.current = chart;
       seriesRef.current = series;
     }
@@ -87,7 +84,10 @@ const ChartComponent: React.FC<ChartComponentProps> = ({ data }) => {
           textColor: theme === "dark" ? "#f8f9fa" : "#343a40"
         },
         timeScale: {
-          borderColor: theme === "dark" ? "#495057" : "#dee2e6"
+          borderColor: theme === "dark" ? "#495057" : "#dee2e6",
+          rightOffset: 12,
+          barSpacing: 15,
+          timeVisible: true
         },
         grid: {
           vertLines: { color: theme === "dark" ? "#343434" : "#e9e9ea" },
@@ -112,29 +112,17 @@ const ChartComponent: React.FC<ChartComponentProps> = ({ data }) => {
   }, []);
 
   useEffect(() => {
-    console.log(timeframe);
     if (seriesRef.current) {
-      if (timeframe == "1D") {
-        const convertedData = data.map((data) => ({
-          time: data.Day.time,
-          open: data.Day.open,
-          high: data.Day.high,
-          low: data.Day.low,
-          close: data.Day.close
-        }));
-        seriesRef.current.setData(convertedData);
-      } else {
-        const convertedData = data.map((data) => ({
-          time: data.IntraDay.time,
-          open: data.IntraDay.open,
-          high: data.IntraDay.high,
-          low: data.IntraDay.low,
-          close: data.IntraDay.close
-        }));
-        seriesRef.current.setData(convertedData);
-      }
+      const convertedData = data.map((data) => ({
+        time: new Date(data.time).getTime() as UTCTimestamp,
+        open: data.open,
+        high: data.high,
+        low: data.low,
+        close: data.close
+      }));
+      seriesRef.current.setData(convertedData);
     }
-  }, [data]);
+  }, [data, timestamp]);
 
   return <div ref={chartContainerRef} className="w-full h-full" />;
 };

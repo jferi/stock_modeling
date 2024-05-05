@@ -8,7 +8,6 @@ const PORT = 3000;
 app.get("/stock/chart/:symbol", async (req, res) => {
   try {
     const { timeframe, period1, period2 } = req.query;
-    console.log(req.query, req.params.symbol);
     const queryOptions = {
       interval: timeframe.toLowerCase(),
       period2: period2,

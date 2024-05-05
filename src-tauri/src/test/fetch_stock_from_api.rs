@@ -1,23 +1,12 @@
 use reqwest::StatusCode;
-use serde::Serialize;
 
-use super::{CustomQuoteDay, StockQuote, CustomQuote};
-
-#[derive(Serialize)]
-pub enum CustomQuoteType {
-    Day(CustomQuoteDay),
-    IntraDay(CustomQuote),
-}
+use super::{StockQuote, CustomQuote};
 
 #[tauri::command]
-pub async fn fetch_stock_chart(symbol: String, timeframe: &str, period1: &str, period2: &str) -> Result<Vec<CustomQuoteType>, String> {
+pub async fn fetch_stock_chart(symbol: String, timeframe: &str, period1: &str, period2: &str) -> Result<Vec<CustomQuote>, String> {
     let stock_data = fetch_stock_data(&symbol, &timeframe, &period1, &period2).await?;
-    let mut custom_quotes = Vec::new();
-    if timeframe == "1D" {
-        custom_quotes = transform_to_custom_quotes_day(stock_data);
-    } else {
-        custom_quotes = transform_to_custom_quotes(stock_data);
-    }
+    let complete_data = filter_complete_quotes(stock_data);
+    let custom_quotes = transform_to_custom_quotes(complete_data);
     Ok(custom_quotes)
 }
 
@@ -36,28 +25,35 @@ async fn fetch_stock_data(symbol: &str, timeframe: &str, period1: &str, period2:
     }
 }
 
-fn transform_to_custom_quotes_day(stock_data: Vec<StockQuote>) -> Vec<CustomQuoteType> {
-    stock_data.iter().map(|quote| {
-        CustomQuoteType::Day(CustomQuoteDay {
-            high: quote.high,
-            volume: quote.volume,
-            open: quote.open,
-            low: quote.low,
-            close: quote.close,
-            time: quote.date.date_naive(),
-        })
-    }).collect()
-}
+fn transform_to_custom_quotes(stock_data: Vec<StockQuote>) -> Vec<CustomQuote> {
+    let mut custom_quotes: Vec<CustomQuote> = Vec::new();
 
-fn transform_to_custom_quotes(stock_data: Vec<StockQuote>) -> Vec<CustomQuoteType> {
-    stock_data.iter().map(|quote| {
-        CustomQuoteType::IntraDay(CustomQuote {
+    for (index, quote) in stock_data.iter().enumerate() {
+        let open = if index == 0 {
+            quote.open 
+        } else {
+            stock_data[index - 1].close
+        };
+
+        let custom_quote = CustomQuote {
             high: quote.high,
             volume: quote.volume,
-            open: quote.open,
+            open: open, 
             low: quote.low,
             close: quote.close,
             time: quote.date,
+        };
+
+        custom_quotes.push(custom_quote);
+    }
+
+    custom_quotes
+}
+
+fn filter_complete_quotes(stock_data: Vec<StockQuote>) -> Vec<StockQuote> {
+    stock_data.into_iter()
+        .filter(|quote| {
+            quote.high.is_some() && quote.low.is_some() && quote.open.is_some() && quote.close.is_some()
         })
-    }).collect()
+        .collect()
 }

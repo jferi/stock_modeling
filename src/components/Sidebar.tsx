@@ -1,20 +1,18 @@
-import { invoke } from "@tauri-apps/api/tauri";
 import React from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useChartData } from "../store/chartdata";
 import { useSidebarLabels } from "../store/sidebar";
 import { useTimeStamp } from "../store/timestamp";
-import { StockChartData } from "../types";
 import SearchBar from "./SearchBar";
 
 const Sidebar: React.FC = () => {
   const { theme } = useTheme();
-  const setChartData = useChartData((state) => state.setData);
   const labels = useSidebarLabels((state) => state.labels);
   const removeLabel = useSidebarLabels((state) => state.removeLabel);
   const timeframe = useTimeStamp((state) => state.timestamp);
   const period1 = useTimeStamp((state) => state.period1);
   const period2 = useTimeStamp((state) => state.period2);
+  const fetchStockData = useChartData((state) => state.fetchData);
 
   const backgroundColorClass = theme === "dark" ? "bg-gray-800" : "bg-gray-200";
   const textColorClass = theme === "dark" ? "text-white" : "text-gray-800";
@@ -34,16 +32,7 @@ const Sidebar: React.FC = () => {
             key={label}
             className={`flex justify-between px-4 py-2 cursor-pointer ${hoverBackgroundColorClass} ${backgroundColorClass} ${textColorClass}`}
             onClick={async () => {
-              console.log(label, timeframe, period1, period2);
-              const data = await invoke("fetch_stock_chart", {
-                symbol: label,
-                timeframe: timeframe,
-                period1: period1,
-                period2: period2
-              });
-              console.log(data);
-
-              setChartData(data as StockChartData[]);
+              fetchStockData(label, timeframe, period1, period2);
             }}
           >
             {label}
