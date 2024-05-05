@@ -22,13 +22,21 @@ const useTimeStamp = create<TimeState>()(
           state.period1 = "2014-01-01";
           state.period2 = dayjs().utc().format("YYYY-MM-DD");
         } else {
-          state.period2 = dayjs().utc().format();
+          state.period2 = dayjs().utc().startOf("minute").format();
           if (timestamp == "1M") {
-            state.period1 = dayjs().utc().subtract(7, "day").format();
-          } else if (timestamp == "5M" || timestamp == "15M") {
-            state.period1 = dayjs().utc().subtract(60, "day").format();
+            state.period1 = dayjs()
+              .utc()
+              .subtract(7, "day")
+              .startOf("minute")
+              .format();
           } else if (timestamp == "1H") {
-            state.period1 = dayjs().utc().subtract(720, "day").format();
+            state.period1 = dayjs()
+              .utc()
+              .subtract(720, "day")
+              .startOf("minute")
+              .format();
+          } else if (timestamp == "1WK") {
+            state.period1 = dayjs().utc().subtract(100000, "day").format();
           }
         }
         state.timestamp = timestamp;

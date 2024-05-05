@@ -11,13 +11,14 @@ const Menu: React.FC = () => {
   const period1 = useTimeStamp((state) => state.period1);
   const period2 = useTimeStamp((state) => state.period2);
   const label = useSidebarLabels((state) => state.label);
+  const timeStamp = useTimeStamp((state) => state.timestamp);
 
   const buttonBg = theme === "dark" ? "bg-gray-700" : "bg-gray-300";
   const buttonHoverBg =
     theme === "dark" ? "hover:bg-gray-600" : "hover:bg-gray-400";
   const textColor = theme === "dark" ? "text-white" : "text-gray-800";
 
-  const timestamps = ["1M", "5M", "15M", "1H", "1D"];
+  const timestamps = ["1M", "1H", "1D", "1WK"];
 
   return (
     <div
@@ -37,8 +38,8 @@ const Menu: React.FC = () => {
             key={timestamp}
             className={`p-2 ${textColor} ${buttonBg} ${buttonHoverBg} rounded transition duration-150 ease-in-out`}
             onClick={async () => {
-              setTimeStamp(timestamp);
-              fetchStockData(label, timestamp, period1, period2);
+              await setTimeStamp(timestamp);
+              fetchStockData(label, timeStamp, period1, period2);
             }}
           >
             {timestamp}
