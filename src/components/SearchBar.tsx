@@ -1,12 +1,13 @@
 import { invoke } from "@tauri-apps/api/tauri";
+import { useAtomValue } from "jotai/react";
 import React, { useEffect, useState } from "react";
 import { useToggle } from "react-use";
-import { useTheme } from "../contexts/ThemeContext";
+import { themeAtom } from "../store/atoms";
 import { useSidebarLabels } from "../store/sidebar";
 import useOutsideClick from "./outsideClick";
 
 const SearchBar: React.FC = () => {
-  const { theme } = useTheme();
+  const theme = useAtomValue(themeAtom);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [toggle, setToggle] = useToggle(false);

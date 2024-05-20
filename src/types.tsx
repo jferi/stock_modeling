@@ -1,8 +1,9 @@
-import { UTCTimestamp } from "lightweight-charts";
 import { Dispatch, SetStateAction } from "react";
 
+export const TIMESTAMPS = ["1M", "1H", "1D", "1WK"] as const;
+
 export interface StockChartData {
-  time: UTCTimestamp;
+  time: number;
   open: number;
   high: number;
   low: number;

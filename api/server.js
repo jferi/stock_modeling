@@ -8,10 +8,14 @@ const PORT = 3000;
 app.get("/stock/chart/:symbol", async (req, res) => {
   try {
     const { timeframe, period1, period2 } = req.query;
+    const minDate = new Date("2000-01-01T00:00:00Z").getTime();
+    const period1Date = new Date(period1).getTime();
+    const adjustedPeriod1 = period1Date < minDate ? "2000-01-01" : period1;
+
     const queryOptions = {
       interval: timeframe.toLowerCase(),
-      period2: period2,
-      period1: period1
+      period1: adjustedPeriod1,
+      period2: period2
     };
     const data = (await yahooFinance.chart(req.params.symbol, queryOptions))
       .quotes;

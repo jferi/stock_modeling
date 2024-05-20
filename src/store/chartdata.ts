@@ -2,16 +2,12 @@ import { invoke } from "@tauri-apps/api/tauri";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { StockChartData, StockChartDataArray } from "../types";
+import { useTimeStamp } from "./timestamp";
 
 type TState = {
   data: StockChartData[];
-  setData: (data: StockChartDataArray, timeframe: string) => void;
-  fetchData: (
-    label: string,
-    timeframe: string,
-    period1: string,
-    period2: string
-  ) => Promise<void>;
+  setData(data: StockChartDataArray): void;
+  fetchData(label: string): Promise<void>;
 };
 
 const useChartData = create<TState>()(
@@ -24,14 +20,11 @@ const useChartData = create<TState>()(
         }));
       });
     },
-    fetchData: async (label, timeframe, period1, period2) => {
+    fetchData: async (label) => {
       try {
-        console.log(label, timeframe, period1, period2);
         const data = await invoke<StockChartData[]>("fetch_stock_chart", {
           symbol: label,
-          timeframe: timeframe,
-          period1: period1,
-          period2: period2
+          timeframe: useTimeStamp.getState().timestamp
         });
         const sortedData = data.sort((a, b) => a.time - b.time);
         set((state) => {
@@ -40,7 +33,7 @@ const useChartData = create<TState>()(
           }));
         });
       } catch (error) {
-        console.error("Failed to fetch stock data:", error);
+        console.log("reached end of data");
       }
     }
   }))
