@@ -17,15 +17,14 @@ pub struct StockQuote {
 pub struct EventsData;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct MetaData; 
-
+pub struct MetaData;
 
 #[derive(Serialize, Debug, Clone, Deserialize, PartialEq)]
 pub struct CustomQuote {
-    high: Option<f64>,
-    volume: Option<u64>,
-    open: Option<f64>,
-    low: Option<f64>,
-    close: Option<f64>,
+    pub high: Option<f64>,
+    pub volume: Option<u64>,
+    pub open: Option<f64>,
+    pub low: Option<f64>,
+    pub close: Option<f64>,
     pub time: DateTime<Utc>,
 }

@@ -6,6 +6,7 @@ import { useChartData } from "../store/chartdata";
 import { useSidebarLabels } from "../store/sidebar";
 import { useTimeStamp } from "../store/timestamp";
 import { StockChartData, TIMESTAMPS } from "../types";
+import Indicators from "./Indicators";
 
 const Menu: FC = () => {
   const [theme, setTheme] = useAtom(themeAtom);
@@ -18,12 +19,16 @@ const Menu: FC = () => {
   const buttonHoverBg =
     theme === "dark" ? "hover:bg-gray-600" : "hover:bg-gray-400";
   const textColor = theme === "dark" ? "text-white" : "text-gray-800";
+  const selectedHoverBackgroundColorClass =
+    theme === "dark"
+      ? "hover:bg-red-400 text-gray-800"
+      : "hover:bg-red-200 text-gray-900";
 
   const getButtonClasses = (timestamp: string) => {
     const isActive = timestamp === timeframe;
     const bgColor = theme === "dark" ? "bg-red-500" : "bg-red-300";
     return `p-2 ${textColor} ${buttonBg} ${buttonHoverBg} rounded transition duration-150 ease-in-out ${
-      isActive ? bgColor : ""
+      isActive ? `${bgColor} ${selectedHoverBackgroundColorClass}` : ""
     }`;
   };
 
@@ -58,6 +63,8 @@ const Menu: FC = () => {
           </button>
         ))}
       </div>
+
+      <Indicators />
     </div>
   );
 };

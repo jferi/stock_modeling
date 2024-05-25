@@ -21,7 +21,6 @@ app.get("/stock/chart/:symbol", async (req, res) => {
       .quotes;
     res.json(data);
   } catch (error) {
-    console.log("Error fetching data:", error);
     res.status(500).json({ error: error.toString() });
   }
 });
@@ -41,7 +40,6 @@ app.get("/search-stocks/:symbol", async (req, res) => {
 
     res.json(symbols);
   } catch (error) {
-    console.error("Error fetching data:", error);
     res.status(500).json({ error: error.toString() });
   }
 });

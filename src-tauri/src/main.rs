@@ -1,15 +1,22 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod indicators;
 mod test;
+use chrono::{DateTime, Duration, TimeZone, Utc};
+use lazy_static::lazy_static;
 use reqwest::StatusCode;
 use serde::Serialize;
-use tauri::Manager;
-use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
-use chrono::{DateTime, Duration, TimeZone, Utc};
-use test::{fetch_stock_from_api, CustomQuote, StockQuote};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use lazy_static::lazy_static;
+use tauri::{CustomMenuItem, Menu, MenuItem, Submenu, Manager};
+use test::{fetch_stock_from_api, CustomQuote, StockQuote};
+
+
+#[derive(Debug, Serialize)]
+pub struct DateRange {
+    pub from: DateTime<Utc>,
+    pub to: DateTime<Utc>,
+}
 
 #[derive(Debug)]
 struct StockData {
@@ -31,7 +38,6 @@ impl StockData {
         self.from = new_from;
         self.to = new_to;
     }
-
 }
 
 #[derive(Debug)]
@@ -49,7 +55,7 @@ impl StockModel {
     fn initialize_timeframes(&mut self, symbol: &str) {
         let now = Utc::now();
         let min_date = Utc.with_ymd_and_hms(2000, 1, 1, 0, 0, 0).unwrap();
-        
+
         let timeframes = vec![
             ("1M", now - Duration::days(3)),
             ("1H", now - Duration::weeks(15)),
@@ -73,7 +79,13 @@ impl StockModel {
             .map(|stock_data| &stock_data.chart_data)
     }
 
-    fn update_period(&mut self, symbol: &str, interval: &str, new_from: DateTime<Utc>, new_to: DateTime<Utc>) {
+    fn update_period(
+        &mut self,
+        symbol: &str,
+        interval: &str,
+        new_from: DateTime<Utc>,
+        new_to: DateTime<Utc>,
+    ) {
         if let Some(timeframe_map) = self.stock_datas.get_mut(symbol) {
             if let Some(stock_data) = timeframe_map.get_mut(interval) {
                 stock_data.update_period(new_from, new_to);
@@ -96,7 +108,10 @@ impl StockModel {
 
                 let mut filtered_new_data: Vec<CustomQuote> = Vec::new();
                 for new_quote in new_data {
-                    if !existing_data.iter().any(|existing_quote| existing_quote == &new_quote) {
+                    if !existing_data
+                        .iter()
+                        .any(|existing_quote| existing_quote == &new_quote)
+                    {
                         filtered_new_data.push(new_quote);
                     }
                 }
@@ -144,7 +159,7 @@ async fn fetch_initial_data(symbol: &str, timeframe: &str) -> Result<Vec<CustomQ
             let filtered_data = fetch_stock_from_api::filter_complete_quotes(stock_data);
             let custom_quotes = fetch_stock_from_api::transform_to_custom_quotes(filtered_data);
             Ok(custom_quotes)
-        },
+        }
         status => Err(format!("Reached end of data {}", status)),
     }
 }
@@ -159,24 +174,31 @@ async fn initialize_data() -> Result<(), String> {
 
             let mut data_map = STOCK_DATA.write().unwrap();
             let stock_model = data_map.get_mut("stocks").unwrap();
-            
+
             stock_model.append_data(symbol, timeframe, data.clone());
-            
+
             let stock_data = stock_model
                 .stock_datas
                 .get(symbol)
                 .and_then(|tf_map| tf_map.get(*timeframe))
                 .unwrap();
             let from = stock_data.from;
-            let new_from = from - match *timeframe {
-                "1M" => Duration::days(3),
-                "1H" => Duration::weeks(15),
-                "1D" => Duration::days(4 * 365),
-                "1WK" => Duration::days(7 * 365),
-                _ => return Err("Invalid timeframe".to_string()),
-            };
+            let new_from = from
+                - match *timeframe {
+                    "1M" => Duration::days(3),
+                    "1H" => Duration::weeks(15),
+                    "1D" => Duration::days(4 * 365),
+                    "1WK" => Duration::days(7 * 365),
+                    _ => return Err("Invalid timeframe".to_string()),
+                };
 
-            print!("{}, {}, Old from: {}, new from: {}", &symbol, &timeframe, &from.date_naive(), &new_from.date_naive());
+            print!(
+                "{}, {}, Old from: {}, new from: {}",
+                &symbol,
+                &timeframe,
+                &from.date_naive(),
+                &new_from.date_naive()
+            );
 
             stock_model.update_period(symbol, timeframe, new_from, from);
         }
@@ -195,8 +217,12 @@ async fn add_item(item: String) -> Result<(), String> {
         }
     }
 
-    let mut data_map = STOCK_DATA.write().map_err(|_| "Failed to acquire lock on STOCK_DATA")?;
-    let stock_model = data_map.entry("stocks".to_string()).or_insert_with(StockModel::new);
+    let mut data_map = STOCK_DATA
+        .write()
+        .map_err(|_| "Failed to acquire lock on STOCK_DATA")?;
+    let stock_model = data_map
+        .entry("stocks".to_string())
+        .or_insert_with(StockModel::new);
 
     if !stock_model.stock_datas.contains_key(&item) {
         stock_model.initialize_timeframes(&item);
@@ -210,9 +236,10 @@ async fn add_item(item: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn get_data(symbol: String, timeframe: String) -> Result<Vec<CustomQuote>, String> {
-    let data_map = STOCK_DATA.read().map_err(|_| "Failed to acquire lock on STOCK_DATA")?;
+    let data_map = STOCK_DATA
+        .read()
+        .map_err(|_| "Failed to acquire lock on STOCK_DATA")?;
     let stock_model = data_map.get("stocks").ok_or("Stock data not found")?;
-    println!("Getting data for symbol: {}, timeframe: {}", symbol, timeframe);
     let stock_data = stock_model
         .stock_datas
         .get(&symbol)
@@ -221,22 +248,19 @@ async fn get_data(symbol: String, timeframe: String) -> Result<Vec<CustomQuote>,
     Ok(stock_data.chart_data.clone())
 }
 
-#[derive(Debug, Serialize)]
-pub struct DateRange {
-    pub from: DateTime<Utc>,
-    pub to: DateTime<Utc>,
-}
 
 #[tauri::command]
 async fn get_range(symbol: String, timeframe: String) -> Result<DateRange, String> {
-    let data_map = STOCK_DATA.read().map_err(|_| "Failed to acquire lock on STOCK_DATA")?;
+    let data_map = STOCK_DATA
+        .read()
+        .map_err(|_| "Failed to acquire lock on STOCK_DATA")?;
     let stock_model = data_map.get("stocks").ok_or("Stock data not found")?;
     let stock_data = stock_model
         .stock_datas
         .get(&symbol)
         .and_then(|tf_map| tf_map.get(&timeframe))
         .ok_or("Stock data not found for the given key")?;
-    
+
     Ok(DateRange {
         from: stock_data.from,
         to: stock_data.to,
@@ -245,7 +269,10 @@ async fn get_range(symbol: String, timeframe: String) -> Result<DateRange, Strin
 
 #[tauri::command]
 fn get_labels() -> Vec<String> {
-    let data_map = STOCK_DATA.read().map_err(|_| "Failed to acquire lock on STOCK_DATA").unwrap();
+    let data_map = STOCK_DATA
+        .read()
+        .map_err(|_| "Failed to acquire lock on STOCK_DATA")
+        .unwrap();
     let stock_model = data_map.get("stocks").unwrap();
     let mut unique_labels: Vec<String> = Vec::new();
     let mut seen_symbols = std::collections::HashSet::new();
@@ -261,7 +288,9 @@ fn get_labels() -> Vec<String> {
 
 #[tauri::command]
 async fn delete_label(label: String) -> Result<(), String> {
-    let mut data_map = STOCK_DATA.write().map_err(|_| "Failed to acquire lock on STOCK_DATA")?;
+    let mut data_map = STOCK_DATA
+        .write()
+        .map_err(|_| "Failed to acquire lock on STOCK_DATA")?;
     let stock_model = data_map.get_mut("stocks").ok_or("Stock data not found")?;
     stock_model.stock_datas.remove(&label);
     Ok(())
@@ -276,11 +305,17 @@ async fn search_indices(query: String) -> Result<Vec<String>, String> {
     if let Err(e) = response {
         return Err(format!("Failed to fetch stock data: {}", e));
     }
-    let response = response.unwrap(); 
+    let response = response.unwrap();
     if !response.status().is_success() {
-        return Err(format!("Failed to fetch stock data: HTTP {}", response.status()));
+        return Err(format!(
+            "Failed to fetch stock data: HTTP {}",
+            response.status()
+        ));
     }
-    let data: Vec<String> = response.json().await.map_err(|e| format!("Failed to parse response: {}", e))?;
+    let data: Vec<String> = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
     Ok(data)
 }
 
@@ -296,6 +331,7 @@ async fn main() {
 
     tauri::Builder::default()
         .setup(|app| {
+
             tokio::task::block_in_place(|| {
                 let rt = tokio::runtime::Runtime::new().unwrap();
                 rt.block_on(async {
@@ -315,13 +351,14 @@ async fn main() {
         })
         .menu(menu)
         .invoke_handler(tauri::generate_handler![
-            test::fetch_stock_from_api::fetch_stock_chart, 
-            get_labels, 
-            search_indices, 
-            add_item, 
+            test::fetch_stock_from_api::fetch_stock_chart,
+            get_labels,
+            search_indices,
+            add_item,
             get_data,
             get_range,
             delete_label,
+            indicators::get_indicators,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

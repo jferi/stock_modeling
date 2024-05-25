@@ -16,11 +16,18 @@ const Sidebar: FC = () => {
   const timeframe: string = useTimeStamp((state) => state.timestamp);
   const setLabel = useSidebarLabels((state) => state.setLabel);
   const refreshLabels = useSidebarLabels((state) => state.refreshLabels);
+  const current_label = useSidebarLabels((state) => state.label);
 
   const backgroundColorClass = theme === "dark" ? "bg-gray-800" : "bg-gray-200";
   const textColorClass = theme === "dark" ? "text-white" : "text-gray-800";
   const hoverBackgroundColorClass =
     theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-300";
+  const selectedHoverBackgroundColorClass =
+    theme === "dark"
+      ? "hover:bg-red-400 hover:text-white text-gray-100"
+      : "hover:bg-red-200 hover:text-gray-900";
+  const activeBackgroundClass =
+    theme === "dark" ? "bg-red-500" : "bg-red-300 text-gray-900";
 
   const handleLabelClick = async (label: string) => {
     setLabel(label);
@@ -48,13 +55,21 @@ const Sidebar: FC = () => {
         {labels.map((label) => (
           <li
             key={label}
-            className={`flex justify-between px-4 py-2 cursor-pointer ${hoverBackgroundColorClass} ${backgroundColorClass} ${textColorClass}`}
+            className={`flex justify-between px-4 py-2 cursor-pointer ${hoverBackgroundColorClass} ${backgroundColorClass} ${textColorClass} ${
+              current_label === label
+                ? `${activeBackgroundClass} ${selectedHoverBackgroundColorClass}`
+                : ""
+            }`}
             onClick={() => handleLabelClick(label)}
           >
             {label}
             <span
               onClick={(e) => handleRemoveLabel(e, label)}
-              className="text-red-500 hover:text-red-600 cursor-pointer"
+              className={`text-red-500 cursor-pointer ${
+                current_label === label
+                  ? `${textColorClass} ${selectedHoverBackgroundColorClass}`
+                  : ""
+              }`}
             >
               ✕
             </span>
