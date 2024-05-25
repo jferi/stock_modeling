@@ -147,6 +147,127 @@ const ChartComponent: FC<{ data: any[] }> = ({ data }) => {
     (state) => state.indicatorsToDelete
   );
 
+  function handleIndicatorChange() {
+    const rsiScaleMargins = {
+      top: 0.7,
+      bottom: 0.05
+    };
+    const macdScaleMargins = {
+      top: 0.7,
+      bottom: 0.05
+    };
+    const rsiScaleMarginsWithMacd = {
+      top: 0.7,
+      bottom: 0.15
+    };
+    const macdScaleMarginsWithRsi = {
+      top: 0.85,
+      bottom: 0
+    };
+    const maScaleMarginsNothing = {
+      top: 0.05,
+      bottom: 0.05
+    };
+    const maScaleMarginsHist = {
+      top: 0.05,
+      bottom: 0.3
+    };
+    const volumeMarginsNothing = {
+      top: 0.7,
+      bottom: 0
+    };
+    const volumeMarginsHist = {
+      top: 0.6,
+      bottom: 0.3
+    };
+    if (chartRef.current) {
+      const activeIndicatorsArray = Array.from(activeIndicators.keys());
+      let hasRsi = false;
+      let hasMacd = false;
+      let hasMa = false;
+      let hasVolume = false;
+      activeIndicatorsArray.forEach((type) => {
+        const key = type.split(" ")[0];
+        if (key === "RSI") {
+          hasRsi = true;
+        } else if (key === "MACD") {
+          hasMacd = true;
+        } else if (key === "SMA" || key === "EMA") {
+          hasMa = true;
+        } else if (key === "VOLUME") {
+          hasVolume = true;
+        }
+      });
+
+      if (hasRsi || hasMacd) {
+        chartRef.current
+          .priceScale("price")
+          .applyOptions({ scaleMargins: maScaleMarginsHist });
+      } else {
+        chartRef.current
+          .priceScale("price")
+          .applyOptions({ scaleMargins: maScaleMarginsNothing });
+      }
+      if (hasMa) {
+        if (hasRsi || hasMacd) {
+          chartRef.current
+            .priceScale("ma")
+            .applyOptions({ scaleMargins: maScaleMarginsHist });
+        } else if (!hasRsi && !hasMacd) {
+          chartRef.current
+            .priceScale("ma")
+            .applyOptions({ scaleMargins: maScaleMarginsNothing });
+        }
+      }
+      if (hasVolume) {
+        if (hasRsi || hasMacd) {
+          chartRef.current.priceScale("volume").applyOptions({
+            scaleMargins: volumeMarginsHist
+          });
+        }
+        if (!hasRsi && !hasMacd) {
+          chartRef.current.priceScale("volume").applyOptions({
+            scaleMargins: volumeMarginsNothing
+          });
+        }
+      }
+      if (hasRsi) {
+        if (hasMacd) {
+          chartRef.current.priceScale("rsi").applyOptions({
+            scaleMargins: rsiScaleMarginsWithMacd
+          });
+        } else {
+          chartRef.current.priceScale("rsi").applyOptions({
+            scaleMargins: rsiScaleMargins
+          });
+        }
+      }
+      if (hasMacd) {
+        if (hasRsi) {
+          chartRef.current.priceScale("macdLine").applyOptions({
+            scaleMargins: macdScaleMarginsWithRsi
+          });
+          chartRef.current.priceScale("macdHistogram").applyOptions({
+            scaleMargins: macdScaleMarginsWithRsi
+          });
+          chartRef.current.priceScale("signalLine").applyOptions({
+            scaleMargins: macdScaleMarginsWithRsi
+          });
+        } else {
+          chartRef.current.priceScale("macdLine").applyOptions({
+            scaleMargins: macdScaleMargins
+          });
+          chartRef.current.priceScale("macdHistogram").applyOptions({
+            scaleMargins: macdScaleMargins
+          });
+          chartRef.current.priceScale("signalLine").applyOptions({
+            scaleMargins: macdScaleMargins
+          });
+        }
+      }
+    }
+  }
+
   useEffect(() => {
     if (chartContainerRef.current && !chartRef.current) {
       const chartOptions: DeepPartial<ChartOptions> & {
@@ -301,190 +422,75 @@ const ChartComponent: FC<{ data: any[] }> = ({ data }) => {
     activeIndicatorsArray.forEach((type) => {
       addIndicator(label, timeframe, type);
     });
+    handleIndicatorChange();
   }, [data, label, timeframe]);
 
   useEffect(() => {
-    const rsiScaleMargins = {
-      top: 0.7,
-      bottom: 0.05
-    };
-    const macdScaleMargins = {
-      top: 0.7,
-      bottom: 0.05
-    };
-    const rsiScaleMarginsWithMacd = {
-      top: 0.7,
-      bottom: 0.15
-    };
-    const macdScaleMarginsWithRsi = {
-      top: 0.85,
-      bottom: 0
-    };
-    const maScaleMarginsNothing = {
-      top: 0.05,
-      bottom: 0.05
-    };
-    const maScaleMarginsHist = {
-      top: 0.05,
-      bottom: 0.3
-    };
-    const volumeMarginsNothing = {
-      top: 0.7,
-      bottom: 0
-    };
-    const volumeMarginsHist = {
-      top: 0.6,
-      bottom: 0.3
-    };
-    if (chartRef.current) {
-      const activeIndicatorsArray = Array.from(activeIndicators.keys());
-      let hasRsi = false;
-      let hasMacd = false;
-      let hasMa = false;
-      let hasVolume = false;
-      activeIndicatorsArray.forEach((type) => {
+    const activeIndicatorsArray = Array.from(activeIndicators.keys());
+    activeIndicatorsArray.forEach((type) => {
+      if (!seriesReferences.has(type)) {
+        const data = activeIndicators.get(type);
         const key = type.split(" ")[0];
-        if (key === "RSI") {
-          hasRsi = true;
-        } else if (key === "MACD") {
-          hasMacd = true;
-        } else if (key === "SMA" || key === "EMA") {
-          hasMa = true;
-        } else if (key === "VOLUME") {
-          hasVolume = true;
-        }
-      });
-      activeIndicatorsArray.forEach((type) => {
-        if (!seriesReferences.has(type)) {
-          const data = activeIndicators.get(type);
-          const key = type.split(" ")[0];
-          if ((key === "SMA" && data) || (key === "EMA" && data)) {
-            const lineSeries = chartRef.current!.addLineSeries({
-              color: indicatorColors[key],
-              lineWidth: 1,
-              priceLineVisible: false,
-              priceScaleId: "ma"
-            });
-            const convertedData = data[0]!.map((item) => ({
+        if ((key === "SMA" && data) || (key === "EMA" && data)) {
+          const lineSeries = chartRef.current!.addLineSeries({
+            color: indicatorColors[key],
+            lineWidth: 1,
+            priceLineVisible: false,
+            priceScaleId: "ma"
+          });
+          const convertedData = data[0]!.map((item) => ({
+            time: (new Date(item.time).getTime() / 1000) as UTCTimestamp,
+            value: item.value
+          }));
+          lineSeries.setData(convertedData as any);
+          seriesReferences.set(type, [lineSeries]);
+        } else if (key === "MACD" && data) {
+          const convertedDatas: IndicatorData[][] = [];
+          for (let i = 0; i < data.length; i++) {
+            const convertedData = data[i]!.map((item) => ({
               time: (new Date(item.time).getTime() / 1000) as UTCTimestamp,
               value: item.value
             }));
-            lineSeries.setData(convertedData as any);
-            seriesReferences.set(type, [lineSeries]);
-          } else if (key === "MACD" && data) {
-            const convertedDatas: IndicatorData[][] = [];
-            for (let i = 0; i < data.length; i++) {
-              const convertedData = data[i]!.map((item) => ({
-                time: (new Date(item.time).getTime() / 1000) as UTCTimestamp,
-                value: item.value
-              }));
-              convertedDatas.push(convertedData);
-            }
-            let mapMacd = show_charts(
-              chartRef.current!,
-              convertedDatas as IndicatorData[][]
-            );
-            seriesReferences.set(type, Array.from(mapMacd.values()));
-          } else if (key === "RSI" && data) {
-            const rsiSeries = chartRef.current!.addLineSeries({
-              color: indicatorColors["RSI"],
-              lineWidth: 1,
-              priceLineVisible: false,
-              priceScaleId: "rsi"
-            });
-
-            const convertedData = data[0]!.map((item) => ({
-              time: (new Date(item.time).getTime() / 1000) as UTCTimestamp,
-              value: item.value
-            }));
-
-            rsiSeries.setData(convertedData as any);
-            seriesReferences.set(type, [rsiSeries]);
-          } else if (key === "VOLUME" && data) {
-            const volumeSeries = chartRef.current!.addHistogramSeries({
-              color: indicatorColors["VOLUME"],
-              priceFormat: {
-                type: "volume"
-              },
-              priceScaleId: "volume"
-            });
-            const convertedData = data[0]!.map((item) => ({
-              time: (new Date(item.time).getTime() / 1000) as UTCTimestamp,
-              value: item.value
-            }));
-            volumeSeries.setData(convertedData as any);
-            seriesReferences.set(type, [volumeSeries]);
+            convertedDatas.push(convertedData);
           }
-        }
-      });
+          let mapMacd = show_charts(
+            chartRef.current!,
+            convertedDatas as IndicatorData[][]
+          );
+          seriesReferences.set(type, Array.from(mapMacd.values()));
+        } else if (key === "RSI" && data) {
+          const rsiSeries = chartRef.current!.addLineSeries({
+            color: indicatorColors["RSI"],
+            lineWidth: 1,
+            priceLineVisible: false,
+            priceScaleId: "rsi"
+          });
 
-      if (hasRsi || hasMacd) {
-        chartRef.current
-          .priceScale("price")
-          .applyOptions({ scaleMargins: maScaleMarginsHist });
-      } else {
-        chartRef.current
-          .priceScale("price")
-          .applyOptions({ scaleMargins: maScaleMarginsNothing });
-      }
-      if (hasMa) {
-        if (hasRsi || hasMacd) {
-          chartRef.current
-            .priceScale("ma")
-            .applyOptions({ scaleMargins: maScaleMarginsHist });
-        } else if (!hasRsi && !hasMacd) {
-          chartRef.current
-            .priceScale("ma")
-            .applyOptions({ scaleMargins: maScaleMarginsNothing });
+          const convertedData = data[0]!.map((item) => ({
+            time: (new Date(item.time).getTime() / 1000) as UTCTimestamp,
+            value: item.value
+          }));
+
+          rsiSeries.setData(convertedData as any);
+          seriesReferences.set(type, [rsiSeries]);
+        } else if (key === "VOLUME" && data) {
+          const volumeSeries = chartRef.current!.addHistogramSeries({
+            color: indicatorColors["VOLUME"],
+            priceFormat: {
+              type: "volume"
+            },
+            priceScaleId: "volume"
+          });
+          const convertedData = data[0]!.map((item) => ({
+            time: (new Date(item.time).getTime() / 1000) as UTCTimestamp,
+            value: item.value
+          }));
+          volumeSeries.setData(convertedData as any);
+          seriesReferences.set(type, [volumeSeries]);
         }
       }
-      if (hasVolume) {
-        if (hasRsi || hasMacd) {
-          chartRef.current.priceScale("volume").applyOptions({
-            scaleMargins: volumeMarginsHist
-          });
-        }
-        if (!hasRsi && !hasMacd) {
-          chartRef.current.priceScale("volume").applyOptions({
-            scaleMargins: volumeMarginsNothing
-          });
-        }
-      }
-      if (hasRsi) {
-        if (hasMacd) {
-          chartRef.current.priceScale("rsi").applyOptions({
-            scaleMargins: rsiScaleMarginsWithMacd
-          });
-        } else {
-          chartRef.current.priceScale("rsi").applyOptions({
-            scaleMargins: rsiScaleMargins
-          });
-        }
-      }
-      if (hasMacd) {
-        if (hasRsi) {
-          chartRef.current.priceScale("macdLine").applyOptions({
-            scaleMargins: macdScaleMarginsWithRsi
-          });
-          chartRef.current.priceScale("macdHistogram").applyOptions({
-            scaleMargins: macdScaleMarginsWithRsi
-          });
-          chartRef.current.priceScale("signalLine").applyOptions({
-            scaleMargins: macdScaleMarginsWithRsi
-          });
-        } else {
-          chartRef.current.priceScale("macdLine").applyOptions({
-            scaleMargins: macdScaleMargins
-          });
-          chartRef.current.priceScale("macdHistogram").applyOptions({
-            scaleMargins: macdScaleMargins
-          });
-          chartRef.current.priceScale("signalLine").applyOptions({
-            scaleMargins: macdScaleMargins
-          });
-        }
-      }
-    }
+    });
+    handleIndicatorChange();
   }, [activeIndicators, seriesReferences]);
 
   useEffect(() => {
