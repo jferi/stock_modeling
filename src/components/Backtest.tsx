@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useBacktestState } from "../store/backtest";
 import { useSidebarLabels } from "../store/labels";
 import { useTheme } from "../store/theme";
-import { useTimeStamp } from "../store/timestamp";
 import { StrategyResult } from "./utils/BacktestUtils";
 
 const strategies = ["MACD", "Triple EMA", "Alligator"];
@@ -14,7 +13,6 @@ const Backtest: React.FC = () => {
   const from = useBacktestState((state) => state.from);
   const to = useBacktestState((state) => state.to);
   const symbol = useSidebarLabels((state) => state.label);
-  const timeframe = useTimeStamp((state) => state.timestamp);
   const strategy = useBacktestState((state) => state.strategy);
   const result = useBacktestState((state) => state.result);
   const setFrom = useBacktestState((state) => state.setFrom);
@@ -34,7 +32,7 @@ const Backtest: React.FC = () => {
           case "MACD":
             result = await invoke<StrategyResult>("macd_strategy", {
               symbol,
-              timeframe,
+              timeframe: "1D",
               from,
               to,
               rsiPeriod: 14,
@@ -46,7 +44,7 @@ const Backtest: React.FC = () => {
           case "Triple EMA":
             result = await invoke<StrategyResult>("three_ema_strategy", {
               symbol,
-              timeframe,
+              timeframe: "1D",
               from,
               to,
               period1: 5,
@@ -57,7 +55,7 @@ const Backtest: React.FC = () => {
           case "Alligator":
             result = await invoke<StrategyResult>("alligator_strategy", {
               symbol,
-              timeframe,
+              timeframe: "1D",
               from,
               to,
               period1: 5,
