@@ -28,6 +28,10 @@ const Backtest: React.FC = () => {
     if (isValidDateRange) {
       try {
         let result: StrategyResult;
+
+        if (from < "2000-01-01" || to < "2000-01-02" || from > to) {
+          throw new Error("Invalid date range");
+        }
         switch (strategy) {
           case "MACD":
             result = await invoke<StrategyResult>("macd_strategy", {
