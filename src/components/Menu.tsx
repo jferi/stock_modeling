@@ -6,6 +6,7 @@ import { useChartData } from "../store/chartdata";
 import { useSidebarLabels } from "../store/sidebar";
 import { useTimeStamp } from "../store/timestamp";
 import { StockChartData, TIMESTAMPS } from "../types";
+import Backtest from "./Backtest";
 import Indicators from "./Indicators";
 
 const Menu: FC = () => {
@@ -39,7 +40,7 @@ const Menu: FC = () => {
       }`}
     >
       <button
-        className={`ml-4 ${textColor} ${buttonBg} ${buttonHoverBg} p-2 rounded transition duration-150 ease-in-out`}
+        className={`px-4 py-2 rounded transition duration-150 ease-in-out ${textColor} ${buttonBg} ${buttonHoverBg}`}
         onClick={() => setTheme(theme === "light" ? "dark" : "light")}
       >
         {theme === "light" ? "Switch to Dark" : "Switch to Light"}
@@ -63,6 +64,7 @@ const Menu: FC = () => {
           </button>
         ))}
       </div>
+      <Backtest />
 
       <Indicators />
     </div>
