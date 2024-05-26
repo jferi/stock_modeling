@@ -163,7 +163,7 @@ const Chart: FC<{ data: any[] }> = ({ data }) => {
 
       const timeRangeChangeHandler = async (range: Range<Time> | null) => {
         if (range) {
-          const fromVisible = range.from as UTCTimestamp;
+          const fromVisible = (range.from as UTCTimestamp) * 1000;
 
           const backendData = await getBackendData(label, timeframe);
           const backendDate = new Date(backendData.to);
@@ -171,19 +171,18 @@ const Chart: FC<{ data: any[] }> = ({ data }) => {
             return;
           }
           const fromBackend = backendDate.getTime();
-
-          const isExceeding = isTimeRangeExceeding(
-            fromVisible,
-            fromBackend,
-            timeframe
-          );
+          const isExceeding = isTimeRangeExceeding(fromVisible, fromBackend);
 
           if (isExceeding) {
-            const data = await invoke("fetch_stock_chart", {
-              symbol: label,
-              timeframe
-            });
-            setData(data as StockChartData[]);
+            try {
+              const data = await invoke("fetch_stock_chart", {
+                symbol: label,
+                timeframe
+              });
+              setData(data as StockChartData[]);
+            } catch (error: any) {
+              console.log("Reached end of data.");
+            }
           }
         }
       };

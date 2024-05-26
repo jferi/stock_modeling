@@ -30,18 +30,9 @@ export function isBefore2000(date: number): boolean {
 
 export function isTimeRangeExceeding(
   fromVisible: number,
-  fromBackend: number,
-  timeframe: string
+  fromBackend: number
 ): boolean {
-  const timeframeMultipliers: { [key: string]: number } = {
-    "1M": 1,
-    "1H": 60,
-    "1D": 1440,
-    "1WK": 10080
-  };
-
-  const timeframeMultiplier = timeframeMultipliers[timeframe] || 1;
-  const timeframeMillis = 30 * timeframeMultiplier * 1000 * 30;
+  const timeframeMillis = 24 * 60 * 60 * 1000;
   return fromVisible - fromBackend <= timeframeMillis;
 }
 
