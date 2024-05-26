@@ -15,7 +15,7 @@ import { FC, useEffect, useRef } from "react";
 import { themeAtom } from "../store/atoms";
 import { useChartData } from "../store/chartdata";
 import { IndicatorData, useIndicatorStore } from "../store/indicators";
-import { useSidebarLabels } from "../store/sidebar";
+import { useSidebarLabels } from "../store/labels";
 import { useTimeStamp } from "../store/timestamp";
 import { StockChartData } from "../types";
 import {

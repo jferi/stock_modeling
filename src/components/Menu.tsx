@@ -3,7 +3,7 @@ import { useAtom } from "jotai/react";
 import { FC } from "react";
 import { themeAtom } from "../store/atoms";
 import { useChartData } from "../store/chartdata";
-import { useSidebarLabels } from "../store/sidebar";
+import { useSidebarLabels } from "../store/labels";
 import { useTheme } from "../store/theme";
 import { useTimeStamp } from "../store/timestamp";
 import { StockChartData, TIMESTAMPS } from "../types";

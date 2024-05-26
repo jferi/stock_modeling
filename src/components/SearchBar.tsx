@@ -3,7 +3,7 @@ import { useAtomValue } from "jotai/react";
 import React, { useEffect, useState } from "react";
 import { useToggle } from "react-use";
 import { themeAtom } from "../store/atoms";
-import { useSidebarLabels } from "../store/sidebar";
+import { useSidebarLabels } from "../store/labels";
 import useOutsideClick from "./utils/OutsideClick";
 
 const SearchBar: React.FC = () => {

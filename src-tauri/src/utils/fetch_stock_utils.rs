@@ -48,6 +48,32 @@ pub async fn fetch_stock_data(symbol: &str, timeframe: &str) -> Result<Vec<Stock
     }
 }
 
+pub async fn fetch_stock_data_for_backtest(
+    symbol: &str,
+    timeframe: &str,
+    from: &str,
+    to: &str
+) -> Result<Vec<StockQuote>, String> {
+    let client = reqwest::Client::new();
+    let url = format!(
+        "http://localhost:3000/stock/chart/{}?timeframe={}&period1={}&period2={}",
+        symbol, timeframe, from, to
+    );
+
+    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
+
+    match response.status() {
+        StatusCode::OK => {
+            let stock_data: Vec<StockQuote> = response.json().await.map_err(|e| e.to_string())?;
+            Ok(stock_data)
+        }
+        status => {
+            Err(format!("Failed to fetch stock data: HTTP {}", status))
+        }
+    }
+
+}
+
 pub fn transform_to_custom_quotes(stock_data: Vec<StockQuote>) -> Vec<CustomQuote> {
     let mut custom_quotes: Vec<CustomQuote> = Vec::new();
 

@@ -22,6 +22,19 @@ pub struct CustomQuote {
     pub time: DateTime<Utc>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct StrategyResult {
+    pub signals: Vec<String>,
+    pub dates: Vec<String>,
+    pub num_trades: usize,
+    pub winning_trades: usize,
+    pub losing_trades: usize,
+    pub winning_percentage: f64,
+    pub profit_factor: f64,
+    pub final_capital: f64,
+    pub total_return_percentage: f64,
+}
+
 #[derive(Debug, Serialize)]
 pub struct DateRange {
     pub from: DateTime<Utc>,

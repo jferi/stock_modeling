@@ -2,7 +2,7 @@ import { useAtomValue } from "jotai";
 import { FC, useEffect, useRef, useState } from "react";
 import { themeAtom } from "../store/atoms";
 import { useIndicatorStore } from "../store/indicators";
-import { useSidebarLabels } from "../store/sidebar";
+import { useSidebarLabels } from "../store/labels";
 import { useTheme } from "../store/theme";
 import { useTimeStamp } from "../store/timestamp";
 import { predefinedIndicators } from "./utils/IndicatorUtil";

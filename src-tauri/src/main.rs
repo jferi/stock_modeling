@@ -6,14 +6,15 @@ pub mod models;
 use chrono::Duration;
 use lazy_static::lazy_static;
 use tokio::time::timeout;
+use utils::backtest_utils::calculate_performance;
 use std::time::Duration as TokioDuration;
-use utils::fetch_stock_utils::{fetch_stock_data, filter_complete_quotes, transform_to_custom_quotes, FETCH_FAILED, MIN_DATE, ONGOING_REQUESTS};
+use utils::fetch_stock_utils::{fetch_stock_data, fetch_stock_data_for_backtest, filter_complete_quotes, transform_to_custom_quotes, FETCH_FAILED, MIN_DATE, ONGOING_REQUESTS};
 use utils::indicator_utils::{calculate_ema, calculate_macd, calculate_rsi, calculate_sma, calculate_volume};
 use utils::init_data_utils::{fetch_initial_data, initialize_data};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tauri::{CustomMenuItem, Menu, MenuItem, Submenu, Manager};
-use types::{ CustomQuote, DateRange, IndicatorData, StockQuote};
+use types::{ CustomQuote, DateRange, IndicatorData, StockQuote, StrategyResult};
 use crate::models::stock_model::StockModel;
 
 lazy_static! {
@@ -207,6 +208,70 @@ async fn fetch_stock_chart(symbol: &str, timeframe: &str) -> Result<Vec<CustomQu
     Ok(custom_quotes)
 }
 
+#[tauri::command]
+async fn alligator_strategy(symbol: &str, timeframe: &str, from: &str, to:&str, period1: usize, period2: usize, period3: usize) -> Result<StrategyResult, String> {
+    let data = fetch_stock_data_for_backtest(symbol, timeframe, from, to).await.unwrap();
+    let filtered_data = filter_complete_quotes(data);
+    let custom_quotes = transform_to_custom_quotes(filtered_data);
+    let sma1 = calculate_sma(&custom_quotes, period1);
+    let sma2 = calculate_sma(&custom_quotes, period2);
+    let sma3 = calculate_sma(&custom_quotes, period3);
+
+    let mut signals = vec!["hold".to_string(); custom_quotes.len()];
+    for i in 1..custom_quotes.len() {
+        if sma1[i].value > sma2[i].value && sma2[i].value > sma3[i].value {
+            signals[i] = "buy".to_string();
+        } else if sma1[i].value < sma2[i].value && sma2[i].value < sma3[i].value {
+            signals[i] = "sell".to_string();
+        }
+    }
+
+    Ok(calculate_performance(&custom_quotes, &signals))
+}
+
+#[tauri::command]
+async fn macd_strategy(symbol: &str, timeframe: &str, from: &str, to:&str, macd_short: usize, macd_long: usize, macd_signal: usize) -> Result<StrategyResult, String> {
+    let data = fetch_stock_data_for_backtest(symbol, timeframe, from, to).await.unwrap();
+    let filtered_data = filter_complete_quotes(data);
+    let custom_quotes = transform_to_custom_quotes(filtered_data);
+    let (macd_line, signal_line, _) = calculate_macd(&custom_quotes, macd_short, macd_long, macd_signal);
+
+    let mut signals = vec!["hold".to_string(); custom_quotes.len()];
+    for i in 0..custom_quotes.len() {
+        if i < macd_short || i < macd_long || i < macd_signal {
+            continue;
+        }
+        if macd_line[i].value > signal_line[i].value {
+            signals[i] = "buy".to_string();
+        } else if  macd_line[i].value < signal_line[i].value {
+            signals[i] = "sell".to_string();
+        }
+    }
+
+    Ok(calculate_performance(&custom_quotes, &signals))
+}
+
+#[tauri::command]
+async fn three_ema_strategy(symbol: &str, timeframe: &str, from: &str, to:&str, period1: usize, period2: usize, period3: usize) -> Result<StrategyResult, String> {
+    let data = fetch_stock_data_for_backtest(symbol, timeframe, from, to).await.unwrap();
+    let filtered_data = filter_complete_quotes(data);
+    let custom_quotes = transform_to_custom_quotes(filtered_data);
+    let ema1 = calculate_ema(&custom_quotes, period1);
+    let ema2 = calculate_ema(&custom_quotes, period2);
+    let ema3 = calculate_ema(&custom_quotes, period3);
+
+    let mut signals = vec!["hold".to_string(); custom_quotes.len()];
+    for i in 1..custom_quotes.len() {
+        if ema1[i].value > ema2[i].value && ema2[i].value > ema3[i].value {
+            signals[i] = "buy".to_string();
+        } else if ema1[i].value < ema2[i].value && ema2[i].value < ema3[i].value {
+            signals[i] = "sell".to_string();
+        }
+    }
+
+    Ok(calculate_performance(&custom_quotes, &signals))
+}
+
 
 #[tauri::command]
 async fn add_item(item: String) -> Result<(), String> {
@@ -361,6 +426,9 @@ async fn main() {
             get_range,
             delete_label,
             get_indicators,
+            macd_strategy,
+            alligator_strategy,
+            three_ema_strategy,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
