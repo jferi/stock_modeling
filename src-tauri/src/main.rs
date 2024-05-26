@@ -1,130 +1,20 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod indicators;
-mod test;
-use chrono::{DateTime, Duration, TimeZone, Utc};
+pub mod utils;
+pub mod types;
+pub mod models;
+use chrono::Duration;
 use lazy_static::lazy_static;
-use reqwest::StatusCode;
-use serde::Serialize;
+use tokio::time::timeout;
+use std::time::Duration as TokioDuration;
+use utils::fetch_stock_utils::{fetch_stock_data, filter_complete_quotes, transform_to_custom_quotes, FETCH_FAILED, MIN_DATE, ONGOING_REQUESTS};
+use utils::indicator_utils::{calculate_ema, calculate_macd, calculate_rsi, calculate_sma, calculate_volume};
+use utils::init_data_utils::{fetch_initial_data, initialize_data};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tauri::{CustomMenuItem, Menu, MenuItem, Submenu, Manager};
-use test::{fetch_stock_from_api, CustomQuote, StockQuote};
-
-
-#[derive(Debug, Serialize)]
-pub struct DateRange {
-    pub from: DateTime<Utc>,
-    pub to: DateTime<Utc>,
-}
-
-#[derive(Debug)]
-struct StockData {
-    chart_data: Vec<CustomQuote>,
-    from: DateTime<Utc>,
-    to: DateTime<Utc>,
-}
-
-impl StockData {
-    fn new(from: DateTime<Utc>, to: DateTime<Utc>) -> Self {
-        Self {
-            chart_data: Vec::new(),
-            from,
-            to,
-        }
-    }
-
-    fn update_period(&mut self, new_from: DateTime<Utc>, new_to: DateTime<Utc>) {
-        self.from = new_from;
-        self.to = new_to;
-    }
-}
-
-#[derive(Debug)]
-struct StockModel {
-    stock_datas: HashMap<String, HashMap<String, StockData>>,
-}
-
-impl StockModel {
-    fn new() -> Self {
-        Self {
-            stock_datas: HashMap::new(),
-        }
-    }
-
-    fn initialize_timeframes(&mut self, symbol: &str) {
-        let now = Utc::now();
-        let min_date = Utc.with_ymd_and_hms(2000, 1, 1, 0, 0, 0).unwrap();
-
-        let timeframes = vec![
-            ("1M", now - Duration::days(3)),
-            ("1H", now - Duration::weeks(15)),
-            ("1D", now - Duration::days(4 * 365)),
-            ("1WK", now - Duration::days(7 * 365)),
-        ];
-
-        let mut timeframe_map = HashMap::new();
-        for (interval, from) in timeframes {
-            let adjusted_from = if from < min_date { min_date } else { from };
-            timeframe_map.insert(interval.to_string(), StockData::new(adjusted_from, now));
-        }
-
-        self.stock_datas.insert(symbol.to_string(), timeframe_map);
-    }
-
-    fn get_data(&self, symbol: &str, interval: &str) -> Option<&Vec<CustomQuote>> {
-        self.stock_datas
-            .get(symbol)
-            .and_then(|timeframe_map| timeframe_map.get(interval))
-            .map(|stock_data| &stock_data.chart_data)
-    }
-
-    fn update_period(
-        &mut self,
-        symbol: &str,
-        interval: &str,
-        new_from: DateTime<Utc>,
-        new_to: DateTime<Utc>,
-    ) {
-        if let Some(timeframe_map) = self.stock_datas.get_mut(symbol) {
-            if let Some(stock_data) = timeframe_map.get_mut(interval) {
-                stock_data.update_period(new_from, new_to);
-            }
-        }
-    }
-
-    fn remove_data(&mut self, symbol: &str, interval: &str, time: DateTime<Utc>) {
-        if let Some(timeframe_map) = self.stock_datas.get_mut(symbol) {
-            if let Some(stock_data) = timeframe_map.get_mut(interval) {
-                stock_data.chart_data.retain(|quote| quote.time != time);
-            }
-        }
-    }
-
-    fn append_data(&mut self, symbol: &str, interval: &str, new_data: Vec<CustomQuote>) {
-        if let Some(timeframe_map) = self.stock_datas.get_mut(symbol) {
-            if let Some(stock_data) = timeframe_map.get_mut(interval) {
-                let existing_data = &mut stock_data.chart_data;
-
-                let mut filtered_new_data: Vec<CustomQuote> = Vec::new();
-                for new_quote in new_data {
-                    if !existing_data
-                        .iter()
-                        .any(|existing_quote| existing_quote == &new_quote)
-                    {
-                        filtered_new_data.push(new_quote);
-                    }
-                }
-
-                if !filtered_new_data.is_empty() {
-                    filtered_new_data.extend(existing_data.clone());
-                    existing_data.clear();
-                    existing_data.extend(filtered_new_data);
-                }
-            }
-        }
-    }
-}
+use types::{ CustomQuote, DateRange, IndicatorData, StockQuote};
+use crate::models::stock_model::StockModel;
 
 lazy_static! {
     static ref STOCK_DATA: Arc<RwLock<HashMap<String, StockModel>>> = {
@@ -138,73 +28,185 @@ lazy_static! {
     };
 }
 
-async fn fetch_initial_data(symbol: &str, timeframe: &str) -> Result<Vec<CustomQuote>, String> {
-    let client = reqwest::Client::new();
-    let now = Utc::now();
-    let from = match timeframe {
-        "1M" => now - Duration::days(3),
-        "1H" => now - Duration::weeks(15),
-        "1D" => now - Duration::days(4 * 365),
-        "1WK" => now - Duration::days(7 * 365),
-        _ => return Err("Invalid timeframe".to_string()),
+#[tauri::command]
+async fn get_indicators(
+    symbol: &str,
+    timeframe: &str,
+    variant: &str,
+    lengths: Vec<usize>, 
+) -> Result<Vec<Vec<IndicatorData>>, String> {
+    let new_symbol = symbol.to_string();
+    let new_timeframe = timeframe.to_string();
+    let chart_data: Vec<CustomQuote> = get_data(new_symbol.clone(), new_timeframe.clone())
+        .await?
+        .into_iter()
+        .collect();
+
+    match variant {
+        "SMA" => {
+            if lengths.len() == 1 {
+                Ok(vec![calculate_sma(&chart_data, lengths[0])])
+            } else {
+                Err("SMA requires exactly one length".to_string())
+            }
+        },
+        "EMA" => {
+            if lengths.len() == 1 {
+                Ok(vec![calculate_ema(&chart_data, lengths[0])])
+            } else {
+                Err("EMA requires exactly one length".to_string())
+            }
+        },
+        "RSI" => {
+            if lengths.len() == 1 {
+                Ok(vec![calculate_rsi(&chart_data, lengths[0])])
+            } else {
+                Err("RSI requires exactly one length".to_string())
+            }
+        },
+        "MACD" => {
+            if lengths.len() == 3 {
+                let (macd_line, signal_line, macd_histogram) = calculate_macd(
+                    &chart_data,
+                    lengths[0],
+                    lengths[1],
+                    lengths[2],
+                );
+                Ok(vec![macd_line, signal_line, macd_histogram])
+            } else {
+                Err("MACD requires exactly three lengths".to_string())
+            }
+        },
+        "VOLUME" => {
+            Ok(vec![calculate_volume(&chart_data)])
+        },
+        _ => Err("Invalid indicator variant".to_string()),
+    }
+}
+
+
+#[tauri::command]
+async fn fetch_stock_chart(symbol: &str, timeframe: &str) -> Result<Vec<CustomQuote>, String> {
+    let key = (symbol.to_string(), timeframe.to_string());
+
+    let request_lock = {
+        let mut ongoing_requests = ONGOING_REQUESTS.write().unwrap();
+        ongoing_requests
+            .entry(key.clone())
+            .or_insert_with(|| Arc::new(tokio::sync::RwLock::new(())))
+            .clone()
     };
-    let url = format!(
-        "http://localhost:3000/stock/chart/{}?timeframe={}&period1={}&period2={}",
-        symbol, timeframe, from, now
-    );
-    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
-    match response.status() {
-        StatusCode::OK => {
-            let stock_data: Vec<StockQuote> = response.json().await.map_err(|e| e.to_string())?;
-            let filtered_data = fetch_stock_from_api::filter_complete_quotes(stock_data);
-            let custom_quotes = fetch_stock_from_api::transform_to_custom_quotes(filtered_data);
-            Ok(custom_quotes)
+
+    let _guard = request_lock.write().await;
+
+    let fetch_result = timeout(
+        TokioDuration::from_millis(3000),
+        fetch_stock_data(symbol, timeframe),
+    )
+    .await;
+
+    let stock_data: Vec<StockQuote> = match fetch_result {
+        Ok(Ok(data)) => data,
+        Ok(Err(e)) => return Err(e),
+        Err(_) => {
+            let mut failed_fetches = FETCH_FAILED.write().unwrap();
+            failed_fetches.insert(key.clone());
+            return Err("Request timed out".to_string());
         }
-        status => Err(format!("Reached end of data {}", status)),
+    };
+
+    if stock_data.len() < 5 {
+        let mut failed_fetches = FETCH_FAILED.write().unwrap();
+        failed_fetches.insert(key.clone());
+        return Err("Insufficient data fetched from backend".to_string());
     }
+
+    let complete_data = filter_complete_quotes(stock_data);
+    let mut custom_quotes = transform_to_custom_quotes(complete_data);
+
+    let (from, _to) = {
+        let data_map = STOCK_DATA
+            .read()
+            .map_err(|_| "Failed to acquire lock on STOCK_DATA")?;
+        let stock_model = data_map.get("stocks").ok_or("Stock data not found")?;
+        let stock_data = stock_model
+            .stock_datas
+            .get(symbol)
+            .and_then(|tf_map| tf_map.get(timeframe))
+            .ok_or("Stock data not found for the given key")?;
+        (stock_data.from, stock_data.to)
+    };
+
+    {
+        let mut data_map = STOCK_DATA
+            .write()
+            .map_err(|_| "Failed to acquire lock on STOCK_DATA")?;
+        let stock_model = data_map.get_mut("stocks").ok_or("Stock data not found")?;
+        let existing_quotes = stock_model
+            .get_data(&symbol, &timeframe)
+            .unwrap_or(&Vec::new())
+            .clone();
+
+        let new_quotes: Vec<CustomQuote> = custom_quotes
+            .into_iter()
+            .filter(|new_quote| {
+                !existing_quotes
+                    .iter()
+                    .any(|existing_quote| *existing_quote == *new_quote)
+            })
+            .collect();
+
+        stock_model.append_data(&symbol, &timeframe, new_quotes.clone());
+
+        let new_from = match timeframe {
+            "1M" => from - Duration::days(5),
+            "1H" => from - Duration::weeks(30),
+            "1D" => from - Duration::days(8 * 365),
+            "1WK" => from - Duration::days(15 * 365),
+            _ => return Err("Invalid timeframe".to_string()),
+        };
+
+        let new_from = if new_from < *MIN_DATE {
+            *MIN_DATE
+        } else {
+            new_from
+        };
+
+        let from = new_quotes
+            .iter()
+            .map(|quote| quote.time)
+            .min()
+            .unwrap_or(from);
+        let from = if from < *MIN_DATE {
+            *MIN_DATE
+        } else {
+            from - Duration::days(1)
+        };
+
+        stock_model.update_period(&symbol, &timeframe, new_from, from);
+        custom_quotes = stock_model.get_data(&symbol, &timeframe).unwrap().clone();
+
+        let mut times_seen = HashMap::new();
+        let mut duplicates = Vec::new();
+        for quote in &custom_quotes {
+            let count = times_seen.entry(quote.time).or_insert(0);
+            *count += 1;
+            if *count == 2 {
+                duplicates.push(quote.time);
+            }
+        }
+
+        if !duplicates.is_empty() {
+            for time in duplicates {
+                custom_quotes.retain(|quote| quote.time != time);
+                stock_model.remove_data(&symbol, &timeframe, time);
+            }
+        } 
+    }
+
+    Ok(custom_quotes)
 }
 
-async fn initialize_data() -> Result<(), String> {
-    let symbols = vec!["AAPL", "GOOGL", "AMZN"];
-    let timeframes = vec!["1M", "1H", "1D", "1WK"];
-
-    for symbol in symbols {
-        for timeframe in timeframes.iter() {
-            let data = fetch_initial_data(symbol, timeframe).await?;
-
-            let mut data_map = STOCK_DATA.write().unwrap();
-            let stock_model = data_map.get_mut("stocks").unwrap();
-
-            stock_model.append_data(symbol, timeframe, data.clone());
-
-            let stock_data = stock_model
-                .stock_datas
-                .get(symbol)
-                .and_then(|tf_map| tf_map.get(*timeframe))
-                .unwrap();
-            let from = stock_data.from;
-            let new_from = from
-                - match *timeframe {
-                    "1M" => Duration::days(3),
-                    "1H" => Duration::weeks(15),
-                    "1D" => Duration::days(4 * 365),
-                    "1WK" => Duration::days(7 * 365),
-                    _ => return Err("Invalid timeframe".to_string()),
-                };
-
-            print!(
-                "{}, {}, Old from: {}, new from: {}",
-                &symbol,
-                &timeframe,
-                &from.date_naive(),
-                &new_from.date_naive()
-            );
-
-            stock_model.update_period(symbol, timeframe, new_from, from);
-        }
-    }
-    Ok(())
-}
 
 #[tauri::command]
 async fn add_item(item: String) -> Result<(), String> {
@@ -351,14 +353,14 @@ async fn main() {
         })
         .menu(menu)
         .invoke_handler(tauri::generate_handler![
-            test::fetch_stock_from_api::fetch_stock_chart,
+            fetch_stock_chart,
             get_labels,
             search_indices,
             add_item,
             get_data,
             get_range,
             delete_label,
-            indicators::get_indicators,
+            get_indicators,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

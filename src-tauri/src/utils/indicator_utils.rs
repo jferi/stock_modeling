@@ -1,70 +1,6 @@
-use crate::{get_data, test::CustomQuote};
-use chrono::{DateTime, Utc};
-use serde::Serialize;
+use crate::types::{CustomQuote, IndicatorData};
 
-#[derive(Debug, Serialize, Clone)]
-pub struct IndicatorData {
-    pub time: DateTime<Utc>,
-    pub value: f64,
-}
-
-#[tauri::command]
-pub async fn get_indicators(
-    symbol: &str,
-    timeframe: &str,
-    variant: &str,
-    lengths: Vec<usize>, 
-) -> Result<Vec<Vec<IndicatorData>>, String> {
-    let new_symbol = symbol.to_string();
-    let new_timeframe = timeframe.to_string();
-    let chart_data: Vec<CustomQuote> = get_data(new_symbol.clone(), new_timeframe.clone())
-        .await?
-        .into_iter()
-        .collect();
-
-    match variant {
-        "SMA" => {
-            if lengths.len() == 1 {
-                Ok(vec![calculate_sma(&chart_data, lengths[0])])
-            } else {
-                Err("SMA requires exactly one length".to_string())
-            }
-        },
-        "EMA" => {
-            if lengths.len() == 1 {
-                Ok(vec![calculate_ema(&chart_data, lengths[0])])
-            } else {
-                Err("EMA requires exactly one length".to_string())
-            }
-        },
-        "RSI" => {
-            if lengths.len() == 1 {
-                Ok(vec![calculate_rsi(&chart_data, lengths[0])])
-            } else {
-                Err("RSI requires exactly one length".to_string())
-            }
-        },
-        "MACD" => {
-            if lengths.len() == 3 {
-                let (macd_line, signal_line, macd_histogram) = calculate_macd(
-                    &chart_data,
-                    lengths[0],
-                    lengths[1],
-                    lengths[2],
-                );
-                Ok(vec![macd_line, signal_line, macd_histogram])
-            } else {
-                Err("MACD requires exactly three lengths".to_string())
-            }
-        },
-        "VOLUME" => {
-            Ok(vec![calculate_volume(&chart_data)])
-        },
-        _ => Err("Invalid indicator variant".to_string()),
-    }
-}
-
-fn calculate_sma(data: &[CustomQuote], period: usize) -> Vec<IndicatorData> {
+pub fn calculate_sma(data: &[CustomQuote], period: usize) -> Vec<IndicatorData> {
     let mut sma_data = Vec::new();
     let mut sum = 0.0;
 
@@ -87,7 +23,7 @@ fn calculate_sma(data: &[CustomQuote], period: usize) -> Vec<IndicatorData> {
     sma_data
 }
 
-fn calculate_ema(data: &[CustomQuote], period: usize) -> Vec<IndicatorData> {
+pub fn calculate_ema(data: &[CustomQuote], period: usize) -> Vec<IndicatorData> {
     let mut ema_data = Vec::new();
     let k = 2.0 / (period as f64 + 1.0);
     let mut ema = data[0].close.unwrap_or(0.0);
@@ -103,7 +39,7 @@ fn calculate_ema(data: &[CustomQuote], period: usize) -> Vec<IndicatorData> {
     ema_data
 }
 
-fn calculate_ema_for_indicator_data(data: &[IndicatorData], period: usize) -> Vec<IndicatorData> {
+pub fn calculate_ema_for_indicator_data(data: &[IndicatorData], period: usize) -> Vec<IndicatorData> {
     let mut ema_data = Vec::new();
     let k = 2.0 / (period as f64 + 1.0);
     let mut ema = data[0].value;
@@ -119,7 +55,7 @@ fn calculate_ema_for_indicator_data(data: &[IndicatorData], period: usize) -> Ve
     ema_data
 }
 
-fn calculate_rsi(data: &[CustomQuote], period: usize) -> Vec<IndicatorData> {
+pub fn calculate_rsi(data: &[CustomQuote], period: usize) -> Vec<IndicatorData> {
     let mut rsi_data = Vec::new();
 
     for i in period..data.len() {
@@ -146,7 +82,7 @@ fn calculate_rsi(data: &[CustomQuote], period: usize) -> Vec<IndicatorData> {
     rsi_data
 }
 
-fn calculate_macd(
+pub fn calculate_macd(
     data: &[CustomQuote],
     short_period: usize,
     long_period: usize,
@@ -176,7 +112,7 @@ fn calculate_macd(
     (macd_line, signal_line, macd_histogram)
 }
 
-fn calculate_volume(data: &[CustomQuote]) -> Vec<IndicatorData> {
+pub fn calculate_volume(data: &[CustomQuote]) -> Vec<IndicatorData> {
     let mut volume_data = Vec::new();
     for i in 0..data.len() {
         let value = data[i].volume.unwrap_or(0) as f64;
