@@ -22,7 +22,7 @@ const Backtest: React.FC = () => {
   const isValidDateRange = useBacktestState((state) => state.isValidDateRange);
   const [isOpen, setIsOpen] = useState(false);
   const [animateError, setAnimateError] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [error, _] = useState<string | undefined>(undefined);
 
   const handleBacktest = async () => {
     if (isValidDateRange) {
@@ -72,12 +72,10 @@ const Backtest: React.FC = () => {
         }
         setResult(result);
       } catch (error: any) {
-        setError(error.message);
         setAnimateError(true);
         setTimeout(() => setAnimateError(false), 1000);
       }
     } else {
-      setError("Invalid date range");
       setAnimateError(true);
       setTimeout(() => setAnimateError(false), 1000);
     }

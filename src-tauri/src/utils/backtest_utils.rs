@@ -15,21 +15,18 @@ pub fn calculate_performance(data: &[CustomQuote], signals: &[String]) -> Strate
     let mut position_type = "";
 
     for i in 1..signals.len() {
-        println!("Signal: {}, Close: {:?}", signals[i], data[i].close);
         match signals[i].as_str() {
             "buy" if position == 0.0 => {
                 position = LOT_SIZE;
                 position_type = "long";
                 capital -= position * data[i].close.unwrap_or(0.0) + COMMISSION;
                 num_trades += 1;
-                println!("Opening long position, Capital: {}", capital);
             }
             "sell" if position == 0.0 => {
                 position = LOT_SIZE;
                 position_type = "short";
                 capital -= position * data[i].close.unwrap_or(0.0) + COMMISSION;
                 num_trades += 1;
-                println!("Opening short position, Capital: {}", capital);
             }
             "sell" if position != 0.0 && position_type == "long" => {
                 capital += position * data[i].close.unwrap_or(0.0) - COMMISSION;
@@ -43,7 +40,6 @@ pub fn calculate_performance(data: &[CustomQuote], signals: &[String]) -> Strate
                 }
                 position = 0.0;
                 position_type = "";
-                println!("Closing long position, Capital: {}", capital);
             }
             "buy" if position != 0.0 && position_type == "short" => {
                 capital += position * data[i].close.unwrap_or(0.0) - COMMISSION;
@@ -57,7 +53,6 @@ pub fn calculate_performance(data: &[CustomQuote], signals: &[String]) -> Strate
                 }
                 position = 0.0;
                 position_type = "";
-                println!("Closing short position, Capital: {}", capital);
             }
             _ => {}
         }
