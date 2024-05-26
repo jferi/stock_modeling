@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useToggle } from "react-use";
 import { themeAtom } from "../store/atoms";
 import { useSidebarLabels } from "../store/sidebar";
-import useOutsideClick from "./outsideClick";
+import useOutsideClick from "./utils/OutsideClick";
 
 const SearchBar: React.FC = () => {
   const theme = useAtomValue(themeAtom);

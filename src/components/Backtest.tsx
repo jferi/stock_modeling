@@ -1,13 +1,12 @@
 import clsx from "clsx";
-import { useAtomValue } from "jotai";
 import React, { useState } from "react";
-import { themeAtom } from "../store/atoms";
 import { useBacktestState } from "../store/backtest";
+import { useTheme } from "../store/theme";
 
 const strategies = ["RSI + MACD", "Triple EMA", "Alligator"];
 
 const Backtest: React.FC = () => {
-  const theme = useAtomValue(themeAtom);
+  const theme = useTheme();
   const from = useBacktestState((state) => state.from);
   const to = useBacktestState((state) => state.to);
   const strategy = useBacktestState((state) => state.strategy);
@@ -17,22 +16,6 @@ const Backtest: React.FC = () => {
   const isValidDateRange = useBacktestState((state) => state.isValidDateRange);
   const [isOpen, setIsOpen] = useState(false);
   const [animateError, setAnimateError] = useState(false);
-
-  const buttonBg = theme === "dark" ? "bg-gray-700" : "bg-gray-300";
-  const buttonHoverBg =
-    theme === "dark" ? "hover:bg-gray-600" : "hover:bg-gray-400";
-  const textColor = theme === "dark" ? "text-white" : "text-gray-800";
-  const borderColor = theme === "dark" ? "border-gray-600" : "border-gray-300";
-  const dropdownBg = theme === "dark" ? "bg-gray-800" : "bg-white";
-  const dropdownText = theme === "dark" ? "text-white" : "text-gray-800";
-  const dropdownBorder =
-    theme === "dark" ? "border-gray-700" : "border-gray-300";
-  const invalidBorderColor = "border-red-600";
-  const invalidTextColor = "text-red-600";
-  const animationColor =
-    theme === "dark"
-      ? "bg-red-500 hover:bg-red-500"
-      : "bg-red-300 hover:bg-red-300";
 
   const toggleDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -51,45 +34,55 @@ const Backtest: React.FC = () => {
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
       <button
-        className={`px-4 py-2 rounded transition duration-150 ease-in-out ${buttonBg} ${buttonHoverBg} ${textColor} border ${borderColor}`}
+        className={`px-4 py-2 rounded transition duration-150 ease-in-out ${theme.buttonBg} ${theme.buttonHoverBg} ${theme.textColor} border ${theme.borderColor}`}
         onClick={toggleDropdown}
       >
         Backtest Options
       </button>
       {isOpen && (
         <div
-          className={`absolute right-0 mt-2 w-56 shadow-lg rounded-lg z-50 ${dropdownBg} border ${dropdownBorder}`}
+          className={`absolute right-0 mt-2 w-56 shadow-lg rounded-lg z-50 ${theme.dropdownBg} border ${theme.dropdownBorder}`}
         >
           <div className="p-4">
-            <label className={`block mb-2 ${dropdownText}`}>From:</label>
+            <label className={`block mb-2 ${theme.dropdownText}`}>From:</label>
             <input
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className={`block w-full mt-1 px-3 py-2 ${dropdownText} ${dropdownBg} border ${
-                isValidDateRange ? dropdownBorder : invalidBorderColor
-              } rounded-md ${isValidDateRange ? "" : invalidTextColor}`}
+              className={`block w-full mt-1 px-3 py-2 ${theme.dropdownText} ${
+                theme.dropdownBg
+              } border ${
+                isValidDateRange
+                  ? theme.dropdownBorder
+                  : theme.invalidBorderColor
+              } rounded-md ${isValidDateRange ? "" : theme.invalidTextColor}`}
             />
-            <label className={`block mb-2 ${dropdownText}`}>To:</label>
+            <label className={`block mb-2 ${theme.dropdownText}`}>To:</label>
             <input
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className={`block w-full mt-1 px-3 py-2 ${dropdownText} ${dropdownBg} border ${
-                isValidDateRange ? dropdownBorder : invalidBorderColor
-              } rounded-md ${isValidDateRange ? "" : invalidTextColor}`}
+              className={`block w-full mt-1 px-3 py-2 ${theme.dropdownText} ${
+                theme.dropdownBg
+              } border ${
+                isValidDateRange
+                  ? theme.dropdownBorder
+                  : theme.invalidBorderColor
+              } rounded-md ${isValidDateRange ? "" : theme.invalidTextColor}`}
             />
-            <label className={`block mb-2 ${dropdownText}`}>Strategy:</label>
+            <label className={`block mb-2 ${theme.dropdownText}`}>
+              Strategy:
+            </label>
             <select
               value={strategy}
               onChange={(e) => setStrategy(e.target.value)}
-              className={`block w-full mt-1 px-3 py-2 ${dropdownText} ${dropdownBg} border ${dropdownBorder} rounded-md`}
+              className={`block w-full mt-1 px-3 py-2 ${theme.dropdownText} ${theme.dropdownBg} border ${theme.dropdownBorder} rounded-md`}
             >
               {strategies.map((strat) => (
                 <option
                   key={strat}
                   value={strat}
-                  className={`py-2 px-3 ${dropdownText} ${dropdownBg} hover:${buttonHoverBg}`}
+                  className={`py-2 px-3 ${theme.dropdownText} ${theme.dropdownBg} hover:${theme.buttonHoverBg}`}
                 >
                   {strat}
                 </option>
@@ -97,10 +90,10 @@ const Backtest: React.FC = () => {
             </select>
             <button
               className={clsx(
-                `mt-4 w-full px-4 py-2 rounded transition duration-150 ease-in-out ${textColor} border ${borderColor}`,
+                `mt-4 w-full px-4 py-2 rounded transition duration-150 ease-in-out ${theme.textColor} border ${theme.borderColor}`,
                 animateError
-                  ? `${animationColor} animate-shake`
-                  : `${buttonBg} ${buttonHoverBg}`
+                  ? `${theme.animationColor} animate-shake`
+                  : `${theme.buttonBg} ${theme.buttonHoverBg}`
               )}
               onClick={handleBacktest}
               onAnimationEnd={() => setAnimateError(false)}

@@ -47,7 +47,7 @@ const useBacktestState = create<BacktestState>()(
       const diffMonths = endDate.diff(startDate, "month");
 
       set((state) => {
-        state.isValidDateRange = diffMonths >= 6;
+        state.isValidDateRange = diffMonths >= 3;
       });
     }
   }))
