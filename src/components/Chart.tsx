@@ -163,7 +163,10 @@ const Chart: FC<{ data: any[] }> = ({ data }) => {
 
       const timeRangeChangeHandler = async (range: Range<Time> | null) => {
         if (range) {
-          const fromVisible = (range.from as UTCTimestamp) * 1000;
+          let fromVisible = (range.from as UTCTimestamp) * 1000;
+          if (timeframe === "1M") {
+            fromVisible = (range.from as UTCTimestamp) * 100;
+          }
 
           const backendData = await getBackendData(label, timeframe);
           const backendDate = new Date(backendData.to);

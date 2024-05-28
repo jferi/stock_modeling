@@ -101,7 +101,7 @@ async fn fetch_stock_chart(symbol: &str, timeframe: &str) -> Result<Vec<CustomQu
     let _guard = request_lock.write().await;
 
     let fetch_result = timeout(
-        TokioDuration::from_millis(3000),
+        TokioDuration::from_millis(200),
         fetch_stock_data(symbol, timeframe),
     )
     .await;
@@ -124,7 +124,7 @@ async fn fetch_stock_chart(symbol: &str, timeframe: &str) -> Result<Vec<CustomQu
 
     let complete_data = filter_complete_quotes(stock_data);
     let mut custom_quotes = transform_to_custom_quotes(complete_data);
-
+    
     let (from, _to) = {
         let data_map = STOCK_DATA
             .read()
@@ -202,11 +202,15 @@ async fn fetch_stock_chart(symbol: &str, timeframe: &str) -> Result<Vec<CustomQu
                 custom_quotes.retain(|quote| quote.time != time);
                 stock_model.remove_data(&symbol, &timeframe, time);
             }
-        } 
+        }
+
+        custom_quotes.sort_by_key(|quote| quote.time);
+        stock_model.update_data(&symbol, &timeframe, custom_quotes.clone());
     }
 
     Ok(custom_quotes)
 }
+
 
 #[tauri::command]
 async fn alligator_strategy(symbol: &str, timeframe: &str, from: &str, to:&str, period1: usize, period2: usize, period3: usize) -> Result<StrategyResult, String> {

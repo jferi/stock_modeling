@@ -90,6 +90,15 @@
                 }
             }
         }
+
+        pub fn update_data(&mut self, symbol: &str, interval: &str, updated_data: Vec<CustomQuote>) {
+            if let Some(timeframe_map) = self.stock_datas.get_mut(symbol) {
+                if let Some(stock_data) = timeframe_map.get_mut(interval) {
+                    stock_data.chart_data.clear();
+                    stock_data.chart_data.extend(updated_data);
+                }
+            }
+        }
     }
 
 
