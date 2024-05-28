@@ -31,6 +31,7 @@
     "react-stockcharts": "^0.5.0",
     "react-use": "^17.5.0",
     "recharts": "^2.12.5",
+    "tailwind": "^4.0.0",
     "web-vitals": "^3.5.2",
     "yahoo-finance2": "^2.11.2",
     "zustand": "^4.5.2"

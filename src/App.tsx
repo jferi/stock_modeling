@@ -1,4 +1,4 @@
-import "./index.css";
+import "./input.css";
 import Layout from "./Layout";
 
 function App() {
