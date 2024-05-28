@@ -39,7 +39,6 @@ const Backtest: React.FC = () => {
               timeframe: "1D",
               from,
               to,
-              rsiPeriod: 14,
               macdShort: 12,
               macdLong: 26,
               macdSignal: 9

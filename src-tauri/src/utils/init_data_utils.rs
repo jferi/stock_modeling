@@ -71,3 +71,23 @@ pub async fn initialize_data() -> Result<(), String> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_fetch_initial_data() {
+        let symbol = "AAPL";
+        let timeframe = "1M";
+        let result = fetch_initial_data(symbol, timeframe).await;
+        assert!(result.is_ok());
+        let data = result.unwrap();
+        assert!(!data.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_initialize_data() {
+        let result = initialize_data().await;
+        assert!(result.is_ok());
+    }
+}

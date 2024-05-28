@@ -13,7 +13,7 @@ use utils::indicator_utils::{calculate_ema, calculate_macd, calculate_rsi, calcu
 use utils::init_data_utils::{fetch_initial_data, initialize_data};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use tauri::{CustomMenuItem, Menu, MenuItem, Submenu, Manager};
+use tauri::Manager;
 use types::{ CustomQuote, DateRange, IndicatorData, StockQuote, StrategyResult};
 use crate::models::stock_model::StockModel;
 
@@ -388,14 +388,6 @@ async fn search_indices(query: String) -> Result<Vec<String>, String> {
 
 #[tokio::main]
 async fn main() {
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let close = CustomMenuItem::new("close".to_string(), "Close");
-    let submenu = Submenu::new("File", Menu::new().add_item(quit).add_item(close));
-    let menu = Menu::new()
-        .add_native_item(MenuItem::Copy)
-        .add_item(CustomMenuItem::new("hide", "Hide"))
-        .add_submenu(submenu);
-
     tauri::Builder::default()
         .setup(|app| {
 
@@ -416,7 +408,6 @@ async fn main() {
             }
             Ok(())
         })
-        .menu(menu)
         .invoke_handler(tauri::generate_handler![
             fetch_stock_chart,
             get_labels,
@@ -432,4 +423,36 @@ async fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_alligator_strategy() {
+        let result = alligator_strategy("AAPL", "1D", "2020-01-01", "2020-12-31", 5, 8, 13).await;
+        assert!(result.is_ok());
+        let strategy_result = result.unwrap();
+        assert!(strategy_result.num_trades > 0);
+    }
+    
+    #[tokio::test]
+    async fn test_macd_strategy() {
+        let result = macd_strategy("AAPL", "1D", "2020-01-01", "2020-12-31", 12, 26, 9).await;
+        assert!(result.is_ok());
+        let strategy_result = result.unwrap();
+        assert!(strategy_result.num_trades > 0);
+    }
+    
+    #[tokio::test]
+    async fn test_three_ema_strategy() {
+        let result = three_ema_strategy("AAPL", "1D", "2020-01-01", "2020-12-31", 5, 10, 20).await;
+        assert!(result.is_ok());
+        let strategy_result = result.unwrap();
+        assert!(strategy_result.num_trades > 0);
+    }
+    
+
 }
