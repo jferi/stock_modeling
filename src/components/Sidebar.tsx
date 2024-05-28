@@ -28,8 +28,13 @@ const Sidebar: FC = () => {
 
   const handleRemoveLabel = async (e: React.MouseEvent, label: string) => {
     e.stopPropagation();
-    removeLabel(label);
-    refreshLabels();
+    e.preventDefault();
+    if (labels.length > 1) {
+      removeLabel(label);
+      refreshLabels();
+    } else {
+      console.log("Cannot remove last label");
+    }
   };
 
   return (
@@ -60,7 +65,10 @@ const Sidebar: FC = () => {
           >
             {label}
             <span
-              onClick={(e) => handleRemoveLabel(e, label)}
+              onClick={(e) => {
+                e.preventDefault();
+                handleRemoveLabel(e, label);
+              }}
               className={`text-red-500 cursor-pointer ${
                 current_label === label
                   ? `${theme.textColorClassSidebar} ${theme.selectedHoverBackgroundColorSidebar}`

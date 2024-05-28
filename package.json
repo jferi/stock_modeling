@@ -10,14 +10,9 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@arction/lcjs": "^5.1.1",
     "@heroicons/react": "^1.0.6",
-    "@nivo/line": "^0.85.1",
-    "@syncfusion/ej2-base": "^25.1.35",
-    "@syncfusion/ej2-react-charts": "^25.1.39",
     "@tauri-apps/api": "^1",
     "axios": "^1.6.8",
-    "chart.js": "^4.4.2",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "dayjs": "^1.11.11",
