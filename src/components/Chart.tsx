@@ -163,9 +163,9 @@ const Chart: FC<{ data: any[] }> = ({ data }) => {
 
       const timeRangeChangeHandler = async (range: Range<Time> | null) => {
         if (range) {
-          let fromVisible = (range.from as UTCTimestamp) * 1000;
+          let fromVisible = (range.from as UTCTimestamp) * 500;
           if (timeframe === "1M") {
-            fromVisible = (range.from as UTCTimestamp) * 100;
+            fromVisible = (range.from as UTCTimestamp) * 50;
           }
 
           const backendData = await getBackendData(label, timeframe);
@@ -184,7 +184,7 @@ const Chart: FC<{ data: any[] }> = ({ data }) => {
               });
               setData(data as StockChartData[]);
             } catch (error: any) {
-              console.log("Reached end of data.");
+              // console.log("Reached end of data.");
             }
           }
         }
